@@ -52,6 +52,7 @@ function blockonomics_woocommerce_init()
 
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'WC_Gateway_Blockonomics.php';
     include_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'Blockonomics.php';
+    include_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'test_setup.php';
     
     add_action('admin_menu', 'add_page');
     add_action('init', 'woocommerce_handle_blockonomics_return');
@@ -101,6 +102,7 @@ function blockonomics_woocommerce_init()
     function add_page()
     {
         $blockonomics = new Blockonomics;
+        $test_setup = new Test_Setup;
 
         if (isset($_POST['generateSecret']))
         {
@@ -142,7 +144,7 @@ function blockonomics_woocommerce_init()
 
         if (isset($_POST['runTest']))
         {
-            $setup_errors = $blockonomics->testSetup();
+            $setup_errors = $test_setup->testSetup();
 
             if($setup_errors)
             {
