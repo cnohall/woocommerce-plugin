@@ -6,14 +6,12 @@ class WC_Filter_Orders_By_Address {
 	protected static $instance;
 	public function __construct() {
 		if ( is_admin() ) {
-
 			// add bulk order filter for exported / non-exported orders
 			add_action( 'restrict_manage_posts', array( $this, 'filter_orders_by_address') , 20 );
 			add_filter( 'request',               array( $this, 'filter_orders_by_address_query' ) );		
 		}
 	}
 	public function filter_orders_by_address() {
-		$orders = get_option('blockonomics_orders');
 		global $typenow;
 		if ( 'shop_order' === $typenow ) {
 			?>
@@ -33,7 +31,6 @@ class WC_Filter_Orders_By_Address {
 		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
 		}
-
 		return self::$instance;
 	}
 }
