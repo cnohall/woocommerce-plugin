@@ -31,12 +31,10 @@ add_action( 'plugins_loaded', 'wc_filter_orders_by_payment' );
  *
  * @since 1.0.0
  */
-class WC_Filter_Orders_By_Payment {
-
+class WC_Filter_Orders_By_Address {
 
 	const VERSION = '1.0.0';
-
-	/** @var WC_Filter_Orders_By_Payment single instance of this plugin */
+	/** @var WC_Filter_Orders_By_Address single instance of this plugin */
 	protected static $instance;
 
 	/**
@@ -49,28 +47,25 @@ class WC_Filter_Orders_By_Payment {
 		if ( is_admin() ) {
 
 			// add bulk order filter for exported / non-exported orders
-			add_action( 'restrict_manage_posts', array( $this, 'filter_orders_by_payment_method') , 20 );
-			add_filter( 'request',               array( $this, 'filter_orders_by_payment_method_query' ) );		
+			add_action( 'restrict_manage_posts', array( $this, 'filter_orders_by_address') , 20 );
+			add_filter( 'request',               array( $this, 'filter_orders_by_address_query' ) );		
 		}
 	}
 
-
 	/** Plugin methods ***************************************/
-
-
 	/**
 	 * Add bulk filter for orders by payment method
 	 *
 	 * @since 1.0.0
 	 */
-	public function filter_orders_by_payment_method() {
+	public function filter_orders_by_address() {
+		$orders = get_option('blockonomics_orders');
 		global $typenow;
-
 		if ( 'shop_order' === $typenow ) {
-
 			// get all payment methods, even inactive ones
 			$gateways = WC()->payment_gateways->payment_gateways();
 			?>
+			<input type='name' placeholder='Filter by bitcoin address' name='filter_by_address'>
 			<select name="_shop_order_payment_method" id="dropdown_shop_order_payment_method">
 				<option value="">
 					<?php esc_html_e( 'All Payment Methods', 'wc-filter-orders-by-payment' ); ?>
@@ -85,7 +80,6 @@ class WC_Filter_Orders_By_Payment {
 		}
 	}
 
-
 	/**
 	 * Process bulk filter order payment method
 	 *
@@ -94,11 +88,20 @@ class WC_Filter_Orders_By_Payment {
 	 * @param array $vars query vars without filtering
 	 * @return array $vars query vars with (maybe) filtering
 	 */
+	public function filter_orders_by_address_query( $vars ) {
+		global $typenow;
+		if ( 'shop_order' === $typenow && isset( $_GET['filter_by_address'] ) && ! empty( $_GET['filter_by_address'] ) ) {
+			$vars['meta_key']   = 'btc_address';
+			$vars['meta_value'] = wc_clean( $_GET['filter_by_address'] );
+		}
+		return $vars;
+	}
+
+
 	public function filter_orders_by_payment_method_query( $vars ) {
 		global $typenow;
 
 		if ( 'shop_order' === $typenow && isset( $_GET['_shop_order_payment_method'] ) && ! empty( $_GET['_shop_order_payment_method'] ) ) {
-
 			$vars['meta_key']   = '_payment_method';
 			$vars['meta_value'] = wc_clean( $_GET['_shop_order_payment_method'] );
 		}
@@ -107,15 +110,14 @@ class WC_Filter_Orders_By_Payment {
 	}
 
 
+
 	/** Helper methods ***************************************/
-
-
 	/**
 	 * Main WC_Filter_Orders_By_Payment Instance, ensures only one instance is/can be loaded
 	 *
 	 * @since 1.0.0
 	 * @see wc_filter_orders_by_payment()
-	 * @return WC_Filter_Orders_By_Payment
+	 * @return WC_Filter_Orders_By_Address
  	*/
 	public static function instance() {
 
@@ -129,13 +131,30 @@ class WC_Filter_Orders_By_Payment {
 
 }
 
-
 /**
- * Returns the One True Instance of WC_Filter_Orders_By_Payment
+ * Returns the One True Instance of WC_Filter_Orders_By_Address
  *
  * @since 1.0.0
- * @return WC_Filter_Orders_By_Payment
+ * @return WC_Filter_Orders_By_Address
  */
 function wc_filter_orders_by_payment() {
-    return WC_Filter_Orders_By_Payment::instance();
+    return WC_Filter_Orders_By_Address::instance();
 }
+
+
+
+		// $address = trim($_POST['address']); 
+		// echo 'You searched for an order on the address: '.$address.'<br>';
+		// $matches = 0;
+		// foreach ($orders as $order) {
+		// 	foreach ($order as $details) {
+		// 		echo "<a href='post.php?post=".$details['order_id']."&action=edit'>Order#: ".$details['order_id']."</a><br>";
+		// 		if ($details['address'] == $address){
+		// 			$matches = 1;
+
+		// 		}
+		// 	}
+		// }
+		// if ($matches == 0){
+		// 	echo 'No orders matched';
+		// }
