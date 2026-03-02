@@ -1013,7 +1013,7 @@ class Blockonomics
         // Build atomic conditional insert
         $sql = $wpdb->prepare(
             "INSERT INTO $table_name (order_id, crypto, address, txid, payment_status, currency, expected_fiat, expected_satoshi)
-            SELECT %d, %s, %s, %s, %d, %s, %d, %d
+            SELECT %d, %s, %s, %s, %d, %s, %f, %d
             FROM DUAL
             WHERE NOT EXISTS (
                 SELECT 1 FROM $table_name 
