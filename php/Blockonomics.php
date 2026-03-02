@@ -1081,6 +1081,7 @@ class Blockonomics
             $order = $this->calculate_order_params($order);
             if (array_key_exists("error", $order)) {
                 $this->log('process_order: calculate_order_params error: ' . $order['error'], 'error');
+                return $order;
             }
             $this->update_order($order);
         }else {
