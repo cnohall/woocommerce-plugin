@@ -475,13 +475,13 @@ function blockonomics_create_table() {
         order_id int NOT NULL,
         payment_status int NOT NULL,
         crypto varchar(4) NOT NULL,
-        address varchar(191) NOT NULL,
+        address varchar(100) NOT NULL,
         expected_satoshi bigint,
         expected_fiat double,
         currency varchar(3),
         paid_satoshi bigint,
         paid_fiat double,
-        txid varchar(191),
+        txid varchar(100) NOT NULL DEFAULT '',
         PRIMARY KEY  (order_id,crypto,address,txid),
         KEY orderkey (order_id,crypto)
     ) $charset_collate;";
