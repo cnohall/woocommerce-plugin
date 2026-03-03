@@ -17,6 +17,13 @@ class Blockonomics_MCP_Abilities {
             return;
         }
 
+        wp_register_ability_category(
+            'blockonomics',
+            array(
+                'label' => __( 'Blockonomics', 'blockonomics-bitcoin-payments' ),
+            )
+        );
+
         wp_register_ability(
             'blockonomics/get-payment-status',
             array(
