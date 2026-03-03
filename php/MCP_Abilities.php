@@ -11,9 +11,8 @@
  */
 class Blockonomics_MCP_Abilities {
 
-    public static function register() {
-        // WordPress Abilities API is only available in WP 6.8+ / WC 10.3+
-        if ( ! function_exists( 'wp_register_ability' ) ) {
+    public static function register_category() {
+        if ( ! function_exists( 'wp_register_ability_category' ) ) {
             return;
         }
 
@@ -23,6 +22,13 @@ class Blockonomics_MCP_Abilities {
                 'label' => __( 'Blockonomics', 'blockonomics-bitcoin-payments' ),
             )
         );
+    }
+
+    public static function register() {
+        // WordPress Abilities API is only available in WP 6.8+ / WC 10.3+
+        if ( ! function_exists( 'wp_register_ability' ) ) {
+            return;
+        }
 
         wp_register_ability(
             'blockonomics/get-payment-status',
