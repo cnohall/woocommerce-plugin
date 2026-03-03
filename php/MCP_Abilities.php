@@ -7,6 +7,9 @@
  * (e.g. Claude Desktop / Claude Code) can query Blockonomics payment data
  * through the WooCommerce MCP server (WooCommerce 10.3+).
  *
+ * Merchants (manage_woocommerce) can query any order.
+ * Logged-in customers can only query their own orders.
+ *
  * @see https://developer.woocommerce.com/docs/features/mcp/
  */
 class Blockonomics_MCP_Abilities {
@@ -35,7 +38,7 @@ class Blockonomics_MCP_Abilities {
             'blockonomics/get-payment-status',
             array(
                 'label'       => __( 'Get Blockonomics Payment Status', 'blockonomics-bitcoin-payments' ),
-                'description' => __( 'Returns the current crypto payment record(s) for a WooCommerce order — amount expected, amount paid, transaction ID, and payment status.', 'blockonomics-bitcoin-payments' ),
+                'description' => __( 'Returns the current crypto payment record(s) for a WooCommerce order — amount expected, amount paid, transaction ID, and payment status. Customers may only query their own orders.', 'blockonomics-bitcoin-payments' ),
                 'category'    => 'blockonomics',
                 'input_schema' => array(
                     'type'       => 'object',
@@ -69,7 +72,7 @@ class Blockonomics_MCP_Abilities {
                         ),
                     ),
                 ),
-                'permission_callback' => array( __CLASS__, 'permission_check' ),
+                'permission_callback' => array( __CLASS__, 'logged_in_check' ),
                 'execute_callback'    => array( __CLASS__, 'get_payment_status' ),
                 'meta' => array( 'mcp' => array( 'public' => true ) ),
             )
@@ -79,7 +82,7 @@ class Blockonomics_MCP_Abilities {
             'blockonomics/get-order-by-address',
             array(
                 'label'       => __( 'Get Order by Crypto Address', 'blockonomics-bitcoin-payments' ),
-                'description' => __( 'Looks up a Blockonomics payment record by the crypto address assigned to an order.', 'blockonomics-bitcoin-payments' ),
+                'description' => __( 'Looks up a Blockonomics payment record by the crypto address assigned to an order. Customers may only query their own orders.', 'blockonomics-bitcoin-payments' ),
                 'category'    => 'blockonomics',
                 'input_schema' => array(
                     'type'       => 'object',
@@ -107,7 +110,7 @@ class Blockonomics_MCP_Abilities {
                         'error'            => array( 'type' => 'string' ),
                     ),
                 ),
-                'permission_callback' => array( __CLASS__, 'permission_check' ),
+                'permission_callback' => array( __CLASS__, 'logged_in_check' ),
                 'execute_callback'    => array( __CLASS__, 'get_order_by_address' ),
                 'meta' => array( 'mcp' => array( 'public' => true ) ),
             )
@@ -117,7 +120,7 @@ class Blockonomics_MCP_Abilities {
             'blockonomics/get-order-by-txid',
             array(
                 'label'       => __( 'Get Order by Transaction ID', 'blockonomics-bitcoin-payments' ),
-                'description' => __( 'Looks up a Blockonomics payment record by the on-chain transaction ID.', 'blockonomics-bitcoin-payments' ),
+                'description' => __( 'Looks up a Blockonomics payment record by the on-chain transaction ID. Customers may only query their own orders.', 'blockonomics-bitcoin-payments' ),
                 'category'    => 'blockonomics',
                 'input_schema' => array(
                     'type'       => 'object',
@@ -145,7 +148,7 @@ class Blockonomics_MCP_Abilities {
                         'error'            => array( 'type' => 'string' ),
                     ),
                 ),
-                'permission_callback' => array( __CLASS__, 'permission_check' ),
+                'permission_callback' => array( __CLASS__, 'logged_in_check' ),
                 'execute_callback'    => array( __CLASS__, 'get_order_by_txid' ),
                 'meta' => array( 'mcp' => array( 'public' => true ) ),
             )
@@ -175,7 +178,7 @@ class Blockonomics_MCP_Abilities {
                         ),
                     ),
                 ),
-                'permission_callback' => array( __CLASS__, 'permission_check' ),
+                'permission_callback' => array( __CLASS__, 'logged_in_check' ),
                 'execute_callback'    => array( __CLASS__, 'get_enabled_cryptos' ),
                 'meta' => array( 'mcp' => array( 'public' => true ) ),
             )
@@ -183,10 +186,22 @@ class Blockonomics_MCP_Abilities {
     }
 
     /**
-     * All abilities require manage_woocommerce capability.
+     * Allows merchants (manage_woocommerce) or any logged-in user.
      */
-    public static function permission_check() {
-        return current_user_can( 'manage_woocommerce' );
+    public static function logged_in_check() {
+        return is_user_logged_in();
+    }
+
+    /**
+     * Returns true if the current user may access the given order.
+     * Merchants can access any order; customers only their own.
+     */
+    private static function can_access_order( $order_id ) {
+        if ( current_user_can( 'manage_woocommerce' ) ) {
+            return true;
+        }
+        $order = wc_get_order( $order_id );
+        return $order && (int) $order->get_customer_id() === get_current_user_id();
     }
 
     /**
@@ -196,9 +211,13 @@ class Blockonomics_MCP_Abilities {
         global $wpdb;
 
         $order_id = intval( $args['order_id'] );
-        $table    = $wpdb->prefix . 'blockonomics_payments';
 
-        $rows = $wpdb->get_results(
+        if ( ! self::can_access_order( $order_id ) ) {
+            return new WP_Error( 'forbidden', __( 'You do not have permission to view this order.', 'blockonomics-bitcoin-payments' ) );
+        }
+
+        $table = $wpdb->prefix . 'blockonomics_payments';
+        $rows  = $wpdb->get_results(
             $wpdb->prepare( "SELECT * FROM {$table} WHERE order_id = %d", $order_id ),
             ARRAY_A
         );
@@ -230,6 +249,10 @@ class Blockonomics_MCP_Abilities {
             return array( 'error' => __( 'No order found for this address.', 'blockonomics-bitcoin-payments' ) );
         }
 
+        if ( ! self::can_access_order( (int) $row['order_id'] ) ) {
+            return new WP_Error( 'forbidden', __( 'You do not have permission to view this order.', 'blockonomics-bitcoin-payments' ) );
+        }
+
         return $row;
     }
 
@@ -251,6 +274,10 @@ class Blockonomics_MCP_Abilities {
 
         if ( empty( $row ) ) {
             return array( 'error' => __( 'No order found for this txid.', 'blockonomics-bitcoin-payments' ) );
+        }
+
+        if ( ! self::can_access_order( (int) $row['order_id'] ) ) {
+            return new WP_Error( 'forbidden', __( 'You do not have permission to view this order.', 'blockonomics-bitcoin-payments' ) );
         }
 
         return $row;
