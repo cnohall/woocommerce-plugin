@@ -73,10 +73,6 @@ function blockonomics_woocommerce_init()
     include_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'Blockonomics.php';
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'admin-page.php';
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'class-blockonomics-setup.php';
-    require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'MCP_Abilities.php';
-    add_action( 'wp_abilities_api_categories_init', array( 'Blockonomics_MCP_Abilities', 'register_category' ) );
-    add_action( 'wp_abilities_api_init', array( 'Blockonomics_MCP_Abilities', 'register' ) );
-
     add_action('admin_menu', 'add_page');
     add_action('init', 'load_plugin_translations');
     add_action('woocommerce_order_details_after_order_table', 'nolo_custom_field_display_cust_order_meta', 10, 1);
@@ -459,6 +455,18 @@ function blockonomics_woocommerce_init()
 
 // After all plugins have been loaded, initialize our payment gateway plugin
 add_action('plugins_loaded', 'blockonomics_woocommerce_init', 0);
+
+// Register Blockonomics MCP abilities at file level so the hooks are in place
+// before WordPress fires the lazy wp_abilities_api_* actions (which can happen
+// any time after init, before or after plugins_loaded callbacks run).
+add_action( 'wp_abilities_api_categories_init', function() {
+    require_once plugin_dir_path( __FILE__ ) . 'php' . DIRECTORY_SEPARATOR . 'MCP_Abilities.php';
+    Blockonomics_MCP_Abilities::register_category();
+} );
+add_action( 'wp_abilities_api_init', function() {
+    require_once plugin_dir_path( __FILE__ ) . 'php' . DIRECTORY_SEPARATOR . 'MCP_Abilities.php';
+    Blockonomics_MCP_Abilities::register();
+} );
 
 register_activation_hook( __FILE__, 'blockonomics_activation_hook' );
 add_action('admin_notices', 'blockonomics_plugin_activation');
