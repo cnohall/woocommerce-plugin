@@ -22,6 +22,7 @@ class Blockonomics_MCP_Abilities {
             array(
                 'label'       => __( 'Get Blockonomics Payment Status', 'blockonomics-bitcoin-payments' ),
                 'description' => __( 'Returns the current crypto payment record(s) for a WooCommerce order — amount expected, amount paid, transaction ID, and payment status.', 'blockonomics-bitcoin-payments' ),
+                'category'    => 'blockonomics',
                 'input_schema' => array(
                     'type'       => 'object',
                     'properties' => array(
@@ -65,6 +66,7 @@ class Blockonomics_MCP_Abilities {
             array(
                 'label'       => __( 'Get Order by Crypto Address', 'blockonomics-bitcoin-payments' ),
                 'description' => __( 'Looks up a Blockonomics payment record by the crypto address assigned to an order.', 'blockonomics-bitcoin-payments' ),
+                'category'    => 'blockonomics',
                 'input_schema' => array(
                     'type'       => 'object',
                     'properties' => array(
@@ -102,6 +104,7 @@ class Blockonomics_MCP_Abilities {
             array(
                 'label'       => __( 'Get Order by Transaction ID', 'blockonomics-bitcoin-payments' ),
                 'description' => __( 'Looks up a Blockonomics payment record by the on-chain transaction ID.', 'blockonomics-bitcoin-payments' ),
+                'category'    => 'blockonomics',
                 'input_schema' => array(
                     'type'       => 'object',
                     'properties' => array(
@@ -139,6 +142,7 @@ class Blockonomics_MCP_Abilities {
             array(
                 'label'       => __( 'Get Enabled Blockonomics Cryptos', 'blockonomics-bitcoin-payments' ),
                 'description' => __( 'Returns the list of crypto currencies currently enabled in the Blockonomics plugin settings.', 'blockonomics-bitcoin-payments' ),
+                'category'    => 'blockonomics',
                 'input_schema' => array(
                     'type'       => 'object',
                     'properties' => new stdClass(), // no parameters required
