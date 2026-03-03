@@ -19,7 +19,8 @@ class Blockonomics_MCP_Abilities {
         wp_register_ability_category(
             'blockonomics',
             array(
-                'label' => __( 'Blockonomics', 'blockonomics-bitcoin-payments' ),
+                'label'       => __( 'Blockonomics', 'blockonomics-bitcoin-payments' ),
+                'description' => __( 'Crypto payment data from the Blockonomics Bitcoin Payments plugin.', 'blockonomics-bitcoin-payments' ),
             )
         );
     }
