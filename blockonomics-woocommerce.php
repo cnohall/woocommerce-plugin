@@ -468,8 +468,28 @@ add_action( 'wp_abilities_api_init', function() {
     Blockonomics_MCP_Abilities::register();
 } );
 
+// Boot the MCP server discovery layer (virtual route, wp_head script, Link header).
+add_action( 'plugins_loaded', function() {
+    require_once plugin_dir_path( __FILE__ ) . 'php' . DIRECTORY_SEPARATOR . 'class-blockonomics-mcp-server.php';
+    Blockonomics_MCP_Server::init();
+}, 5 );
+
 register_activation_hook( __FILE__, 'blockonomics_activation_hook' );
 add_action('admin_notices', 'blockonomics_plugin_activation');
+
+// Flush rewrite rules on activation so /.well-known/mcp/server.json is live immediately.
+register_activation_hook( __FILE__, 'blockonomics_mcp_server_activate' );
+function blockonomics_mcp_server_activate() {
+    require_once plugin_dir_path( __FILE__ ) . 'php' . DIRECTORY_SEPARATOR . 'class-blockonomics-mcp-server.php';
+    Blockonomics_MCP_Server::register_rewrite();
+    flush_rewrite_rules();
+}
+
+// Remove the rewrite rule cleanly when the plugin is deactivated.
+register_deactivation_hook( __FILE__, 'blockonomics_mcp_server_deactivate' );
+function blockonomics_mcp_server_deactivate() {
+    flush_rewrite_rules();
+}
 
 add_action( 'before_woocommerce_init', function() {
 	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
