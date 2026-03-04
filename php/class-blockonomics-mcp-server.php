@@ -49,7 +49,14 @@ class Blockonomics_MCP_Server {
      * and exit — bypassing the normal WordPress template hierarchy.
      */
     public static function maybe_serve_manifest() {
-        if ( '1' !== get_query_var( self::QUERY_VAR ) ) {
+        $request_path = isset( $_SERVER['REQUEST_URI'] )
+            ? parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH )
+            : '';
+
+        $is_mcp = ( '1' === get_query_var( self::QUERY_VAR ) )
+               || ( '/.well-known/mcp/server.json' === $request_path );
+
+        if ( ! $is_mcp ) {
             return;
         }
 
