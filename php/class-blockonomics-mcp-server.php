@@ -200,6 +200,60 @@ class Blockonomics_MCP_Server {
                     'properties' => new stdClass(), // no inputs required
                 ),
             ),
+            array(
+                'name'        => 'blockonomics/get-btc-rate',
+                'description' => 'Returns the live BTC exchange rate for a WooCommerce product in the store currency, plus the satoshi price.',
+                'inputSchema' => array(
+                    'type'                 => 'object',
+                    'additionalProperties' => false,
+                    'properties'           => array(
+                        'product_id' => array(
+                            'type'        => 'integer',
+                            'description' => 'WooCommerce product ID.',
+                            'minimum'     => 1,
+                        ),
+                    ),
+                    'required' => array( 'product_id' ),
+                ),
+            ),
+            array(
+                'name'        => 'blockonomics/initiate-payment',
+                'description' => 'Creates a WooCommerce order and returns the Bitcoin payment URI, address, and satoshi amount so the customer can pay immediately.',
+                'inputSchema' => array(
+                    'type'                 => 'object',
+                    'additionalProperties' => false,
+                    'properties'           => array(
+                        'product_id'     => array(
+                            'type'        => 'integer',
+                            'description' => 'WooCommerce product ID to purchase.',
+                            'minimum'     => 1,
+                        ),
+                        'customer_email' => array(
+                            'type'        => 'string',
+                            'format'      => 'email',
+                            'description' => 'Customer email address.',
+                            'maxLength'   => 254,
+                        ),
+                    ),
+                    'required' => array( 'product_id', 'customer_email' ),
+                ),
+            ),
+            array(
+                'name'        => 'blockonomics/confirm-settlement',
+                'description' => 'Checks whether a Bitcoin payment for a WooCommerce order has been detected on-chain and fully confirmed.',
+                'inputSchema' => array(
+                    'type'                 => 'object',
+                    'additionalProperties' => false,
+                    'properties'           => array(
+                        'order_id' => array(
+                            'type'        => 'integer',
+                            'description' => 'WooCommerce order ID.',
+                            'minimum'     => 1,
+                        ),
+                    ),
+                    'required' => array( 'order_id' ),
+                ),
+            ),
         );
     }
 
