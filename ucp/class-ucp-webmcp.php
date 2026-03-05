@@ -19,6 +19,7 @@ class UCP_WebMCP
         // Only load on frontend
         if (!is_admin()) {
             add_action('wp_head', array($this, 'inject_mcp_discovery_link'), 1);
+            add_action('wp_footer', array($this, 'inject_webmcp_bootstrap'), 5);
             add_action('wp_footer', array($this, 'inject_ucp_tools'), 10);
         }
     }
@@ -41,12 +42,6 @@ class UCP_WebMCP
             (function () {
                 // Function to initialize or check for modelContext
                 function initWebMCP() {
-                    // Check if @mcp-b/global is already loaded
-                    if (window.navigator?.modelContext) {
-                        console.log('[UCP Connect] navigator.modelContext already available');
-                        return;
-                    }
-
                     console.log('[UCP Connect] Loading @mcp-b/global from CDN...');
 
                     // Load @mcp-b/global polyfill from unpkg
@@ -63,14 +58,10 @@ class UCP_WebMCP
                     document.head.appendChild(script);
                 }
 
-                // Wait for full page load, then give browser extensions 800ms to inject
-                // their native navigator.modelContext before falling back to polyfill.
+                // Wait for full page load, then load the polyfill.
+                // The polyfill handles coexistence with native implementations.
                 function startWebMCP() {
-                    if (window.navigator?.modelContext) {
-                        console.log('[UCP Connect] navigator.modelContext already available (native)');
-                        return;
-                    }
-                    setTimeout(initWebMCP, 800);
+                    setTimeout(initWebMCP, 200);
                 }
 
                 if (document.readyState === 'complete') {
