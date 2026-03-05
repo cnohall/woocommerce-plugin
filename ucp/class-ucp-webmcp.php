@@ -19,7 +19,6 @@ class UCP_WebMCP
         // Only load on frontend
         if (!is_admin()) {
             add_action('wp_head', array($this, 'inject_mcp_discovery_link'), 1);
-            add_action('wp_footer', array($this, 'inject_webmcp_bootstrap'), 5);
             add_action('wp_footer', array($this, 'inject_ucp_tools'), 10);
         }
     }
@@ -443,11 +442,12 @@ class UCP_WebMCP
                     return true;
                 }
 
-                // Poll every 100ms for 10 seconds.
-                // Keeps running after the first registration so we can re-register
-                // if the browser extension replaces the polyfill's modelContext object.
+                // Try immediately, then poll every 100ms for 30 seconds.
+                // Does NOT stop on first success — keeps running so we re-register
+                // if the browser extension replaces navigator.modelContext later.
+                registerUCPTools();
                 var _ucpInterval = setInterval(registerUCPTools, 100);
-                setTimeout(function () { clearInterval(_ucpInterval); }, 10000);
+                setTimeout(function () { clearInterval(_ucpInterval); }, 30000);
             })();
         </script>
         <?php
