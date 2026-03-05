@@ -105,10 +105,23 @@ class UCP_Store_API
         include_once $blockonomics_php;
 
         $blockonomics = new Blockonomics();
-        $order_data   = $blockonomics->create_new_order($order_id, 'btc');
+
+        // Diagnostic check: call new_address first to surface the HTTP status code.
+        $addr_response = $blockonomics->new_address('btc');
+        if ($addr_response->response_code != 200) {
+            $order->update_status('failed', 'Blockonomics address error');
+            $order->save();
+            $code = !empty($addr_response->response_code) ? $addr_response->response_code : 'network_error';
+            $msg  = !empty($addr_response->response_message) ? $addr_response->response_message : '(no message)';
+            throw new Exception('Blockonomics new_address failed — HTTP ' . $code . ': ' . $msg);
+        }
+
+        $order_data = $blockonomics->create_new_order($order_id, 'btc');
 
         if (isset($order_data['error'])) {
-            throw new Exception('Blockonomics: ' . $order_data['error']);
+            $order->update_status('failed', 'Blockonomics order error');
+            $order->save();
+            throw new Exception('Blockonomics: ' . (!empty($order_data['error']) ? $order_data['error'] : 'Unknown error'));
         }
 
         $blockonomics->insert_order($order_data);
