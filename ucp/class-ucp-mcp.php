@@ -63,15 +63,17 @@ class UCP_MCP_Server
                 case 'call_tool':
                 case 'tools/call':
                     $tool_data = $this->call_tool($params);
-                    $result = array(
-                        'content' => array(
-                            array(
-                                'type' => 'text',
-                                'text' => wp_json_encode($tool_data),
+                    // Tools can return a pre-built content array (e.g. image results).
+                    if (isset($tool_data['__mcp_content'])) {
+                        $result = array('content' => $tool_data['__mcp_content'], 'isError' => false);
+                    } else {
+                        $result = array(
+                            'content' => array(
+                                array('type' => 'text', 'text' => wp_json_encode($tool_data)),
                             ),
-                        ),
-                        'isError' => false,
-                    );
+                            'isError' => false,
+                        );
+                    }
                     break;
                 default:
                     $error = array('code' => -32601, 'message' => 'Method not found: ' . $method);
@@ -171,6 +173,17 @@ class UCP_MCP_Server
                     ),
                 ),
                 array(
+                    'name' => 'get_product_images',
+                    'description' => 'Fetch images for a product by ID. Returns the images inline so they can be displayed.',
+                    'inputSchema' => array(
+                        'type' => 'object',
+                        'properties' => array(
+                            'product_id' => array('type' => 'integer', 'description' => 'Product ID from search results.'),
+                        ),
+                        'required' => array('product_id'),
+                    ),
+                ),
+                array(
                     'name' => 'get_order_status',
                     'description' => 'Check the current status of an order. Works before and after payment.',
                     'inputSchema' => array(
@@ -230,6 +243,37 @@ class UCP_MCP_Server
                 $store_api = new UCP_Store_API();
                 $checkout_id = isset($args['checkout_id']) ? $args['checkout_id'] : '';
                 return $store_api->pay_with_bitcoin($checkout_id);
+
+            case 'get_product_images':
+                $product_id = absint($args['product_id'] ?? 0);
+                $product = wc_get_product($product_id);
+                if (!$product) throw new Exception('Product not found: ' . $product_id);
+
+                $mapper = new UCP_Mapper();
+                $data   = $mapper->map_product_to_item($product);
+                $images = $data['images'] ?? array();
+
+                $content = array(
+                    array('type' => 'text', 'text' => $product->get_name() . ' — ' . count($images) . ' image(s)'),
+                );
+
+                foreach (array_slice($images, 0, 4) as $url) {
+                    $response = wp_remote_get($url, array('timeout' => 10));
+                    if (is_wp_error($response)) continue;
+                    $body = wp_remote_retrieve_body($response);
+                    $mime = wp_remote_retrieve_header($response, 'content-type');
+                    // Strip charset suffix if present (e.g. "image/jpeg; charset=...")
+                    $mime = strtok($mime ?: 'image/jpeg', ';');
+                    if ($body) {
+                        $content[] = array(
+                            'type'     => 'image',
+                            'data'     => base64_encode($body),
+                            'mimeType' => trim($mime),
+                        );
+                    }
+                }
+
+                return array('__mcp_content' => $content);
 
             case 'get_order_status':
                 $api = new UCP_API();
