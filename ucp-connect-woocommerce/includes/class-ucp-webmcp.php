@@ -55,11 +55,20 @@ class UCP_WebMCP
                     document.head.appendChild(script);
                 }
 
-                // Wait for full page load to give extensions priority
+                // Wait for full page load, then give browser extensions 800ms to inject
+                // their native navigator.modelContext before falling back to polyfill.
+                function startWebMCP() {
+                    if (window.navigator?.modelContext) {
+                        console.log('[UCP Connect] navigator.modelContext already available (native)');
+                        return;
+                    }
+                    setTimeout(initWebMCP, 800);
+                }
+
                 if (document.readyState === 'complete') {
-                    initWebMCP();
+                    startWebMCP();
                 } else {
-                    window.addEventListener('load', initWebMCP);
+                    window.addEventListener('load', startWebMCP);
                 }
             })();
         </script>
@@ -402,23 +411,26 @@ class UCP_WebMCP
                     // Register tools: use registerTool() for the native browser API,
                     // fall back to provideContext() for the @mcp-b/global polyfill.
                     var mc = window.navigator.modelContext;
-                    console.log('[UCP Connect] modelContext methods:', Object.keys(mc));
 
-                    if (typeof mc.registerTool === 'function') {
-                        console.log('[UCP Connect] Using registerTool() API');
-                        ucpTools.forEach(function (tool) {
-                            try {
-                                mc.registerTool(tool);
-                                console.log('[UCP Connect] Registered tool:', tool.name);
-                            } catch (e) {
-                                console.error('[UCP Connect] Failed to register tool:', tool.name, e);
-                            }
-                        });
-                    } else if (typeof mc.provideContext === 'function') {
-                        console.log('[UCP Connect] Using provideContext() API');
-                        mc.provideContext({ tools: ucpTools });
-                    } else {
-                        console.error('[UCP Connect] Neither registerTool nor provideContext available. mc =', mc);
+                    try {
+                        if (typeof mc.registerTool === 'function') {
+                            console.log('[UCP Connect] Using registerTool() API');
+                            ucpTools.forEach(function (tool) {
+                                try {
+                                    mc.registerTool(tool);
+                                    console.log('[UCP Connect] Registered tool:', tool.name);
+                                } catch (e) {
+                                    console.error('[UCP Connect] Failed to register tool:', tool.name, e);
+                                }
+                            });
+                        } else if (typeof mc.provideContext === 'function') {
+                            console.log('[UCP Connect] Using provideContext() API');
+                            mc.provideContext({ tools: ucpTools });
+                        } else {
+                            console.error('[UCP Connect] Neither registerTool nor provideContext available. mc =', mc);
+                        }
+                    } catch (e) {
+                        console.error('[UCP Connect] Error during tool registration:', e);
                     }
 
                     console.log('[UCP Connect] Registered ' + ucpTools.length + ' UCP commerce tools via navigator.modelContext');
