@@ -110,16 +110,8 @@ class UCP_WebMCP
                     return await response.json();
                 }
 
-                // Wait for @mcp-b/global to be ready
-                function registerUCPTools() {
-                    if (!window.navigator?.modelContext) {
-                        console.log('[UCP Connect] Waiting for navigator.modelContext...');
-                        setTimeout(registerUCPTools, 100);
-                        return;
-                    }
-
-                    // Define UCP tools following @mcp-b/global standard
-                    const ucpTools = [
+                // Define UCP tools
+                var ucpTools = [
                         {
                             name: 'search_products',
                             description: 'Search for products in this WooCommerce store. Returns a list of products matching the query. Pass an empty string "" to list all products.',
@@ -408,44 +400,40 @@ class UCP_WebMCP
                         }
                     ];
 
-                    // Register tools: use registerTool() for the native browser API,
-                    // fall back to provideContext() for the @mcp-b/global polyfill.
-                    var mc = window.navigator.modelContext;
+                // Register tools on navigator.modelContext using registerTool() (native
+                // browser extension API) or provideContext() (@mcp-b/global polyfill).
+                // Returns true if registration succeeded.
+                function registerUCPTools() {
+                    var mc = window.navigator && window.navigator.modelContext;
+                    if (!mc) return false;
 
                     try {
                         if (typeof mc.registerTool === 'function') {
-                            console.log('[UCP Connect] Using registerTool() API');
-                            ucpTools.forEach(function (tool) {
-                                try {
-                                    mc.registerTool(tool);
-                                    console.log('[UCP Connect] Registered tool:', tool.name);
-                                } catch (e) {
-                                    console.error('[UCP Connect] Failed to register tool:', tool.name, e);
-                                }
-                            });
+                            ucpTools.forEach(function (tool) { mc.registerTool(tool); });
+                            console.log('[UCP Connect] Registered ' + ucpTools.length + ' tools via registerTool()');
                         } else if (typeof mc.provideContext === 'function') {
-                            console.log('[UCP Connect] Using provideContext() API');
                             mc.provideContext({ tools: ucpTools });
+                            console.log('[UCP Connect] Registered ' + ucpTools.length + ' tools via provideContext()');
                         } else {
-                            console.error('[UCP Connect] Neither registerTool nor provideContext available. mc =', mc);
+                            return false;
                         }
                     } catch (e) {
-                        console.error('[UCP Connect] Error during tool registration:', e);
+                        console.error('[UCP Connect] Registration error:', e);
+                        return false;
                     }
 
-                    console.log('[UCP Connect] Registered ' + ucpTools.length + ' UCP commerce tools via navigator.modelContext');
-
-                    // Dispatch event for compatibility with other systems
                     window.dispatchEvent(new CustomEvent('ucp:tools-registered', {
                         detail: { source: 'ucp-connect-woocommerce', count: ucpTools.length }
                     }));
+                    return true;
                 }
 
-                // Start registration once DOM is ready
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', registerUCPTools);
-                } else {
-                    registerUCPTools();
+                // Try immediately, then retry every 100ms for up to 5 seconds.
+                if (!registerUCPTools()) {
+                    var _ucpInterval = setInterval(function () {
+                        if (registerUCPTools()) clearInterval(_ucpInterval);
+                    }, 100);
+                    setTimeout(function () { clearInterval(_ucpInterval); }, 5000);
                 }
             })();
         </script>
