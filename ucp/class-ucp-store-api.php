@@ -69,9 +69,9 @@ class UCP_Store_API
             $cart_token = $result['cart_token'];
         }
 
-        $checkout_result = $this->store_api_request('/checkout', 'GET', null, $cart_token);
+        $cart_result = $this->store_api_request('/cart', 'GET', null, $cart_token);
 
-        return $this->format_checkout_response($checkout_result['data'], $cart_token);
+        return $this->format_checkout_response($cart_result['data'], $cart_token);
     }
 
     public function update_checkout($checkout_id, $updates)
@@ -81,7 +81,7 @@ class UCP_Store_API
         if (isset($updates['shipping_address'])) {
             $address = $updates['shipping_address'];
             $this->store_api_request(
-                '/checkout',
+                '/cart/update-customer',
                 'POST',
                 array(
                     'billing_address' => array(
@@ -119,9 +119,9 @@ class UCP_Store_API
             }
         }
 
-        $checkout_result = $this->store_api_request('/checkout', 'GET', null, $cart_token);
+        $cart_result = $this->store_api_request('/cart', 'GET', null, $cart_token);
 
-        return $this->format_checkout_response($checkout_result['data'], $cart_token);
+        return $this->format_checkout_response($cart_result['data'], $cart_token);
     }
 
     public function complete_checkout($checkout_id)

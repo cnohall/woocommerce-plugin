@@ -195,6 +195,7 @@ class UCP_MCP_Server
                 $req->set_body_params($args);
                 $res = $api->update_checkout($req);
                 if (is_wp_error($res)) throw new Exception($res->get_error_message());
+                return $res->get_data();
 
             case 'complete_checkout':
                 $store_api = new UCP_Store_API();
