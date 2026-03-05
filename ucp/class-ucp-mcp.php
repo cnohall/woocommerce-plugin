@@ -176,6 +176,7 @@ class UCP_MCP_Server
                 $req = new WP_REST_Request();
                 $req->set_body_params($args);
                 $res = $api->search_products($req);
+                if (is_wp_error($res)) throw new Exception($res->get_error_message());
                 return $res->get_data();
 
             case 'create_checkout':
@@ -183,6 +184,7 @@ class UCP_MCP_Server
                 $req = new WP_REST_Request();
                 $req->set_body_params($args);
                 $res = $api->create_checkout($req);
+                if (is_wp_error($res)) throw new Exception($res->get_error_message());
                 return $res->get_data();
 
             case 'update_checkout':
@@ -192,7 +194,7 @@ class UCP_MCP_Server
                 $req->set_param('id', $checkout_id);
                 $req->set_body_params($args);
                 $res = $api->update_checkout($req);
-                return $res->get_data();
+                if (is_wp_error($res)) throw new Exception($res->get_error_message());
 
             case 'complete_checkout':
                 $store_api = new UCP_Store_API();
