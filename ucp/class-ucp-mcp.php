@@ -173,26 +173,29 @@ class UCP_MCP_Server
         switch ($tool_name) {
             case 'search_products':
                 $api = new UCP_API();
-                $req = new WP_REST_Request();
-                $req->set_body_params($args);
+                $req = new WP_REST_Request('POST');
+                $req->set_header('Content-Type', 'application/json');
+                $req->set_body(wp_json_encode($args));
                 $res = $api->search_products($req);
                 if (is_wp_error($res)) throw new Exception($res->get_error_message());
                 return $res->get_data();
 
             case 'create_checkout':
                 $api = new UCP_API();
-                $req = new WP_REST_Request();
-                $req->set_body_params($args);
+                $req = new WP_REST_Request('POST');
+                $req->set_header('Content-Type', 'application/json');
+                $req->set_body(wp_json_encode($args));
                 $res = $api->create_checkout($req);
                 if (is_wp_error($res)) throw new Exception($res->get_error_message());
                 return $res->get_data();
 
             case 'update_checkout':
                 $api = new UCP_API();
-                $req = new WP_REST_Request();
+                $req = new WP_REST_Request('POST');
+                $req->set_header('Content-Type', 'application/json');
                 $checkout_id = isset($args['checkout_id']) ? $args['checkout_id'] : '';
                 $req->set_param('id', $checkout_id);
-                $req->set_body_params($args);
+                $req->set_body(wp_json_encode($args));
                 $res = $api->update_checkout($req);
                 if (is_wp_error($res)) throw new Exception($res->get_error_message());
                 return $res->get_data();
