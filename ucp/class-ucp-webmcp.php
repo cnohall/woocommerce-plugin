@@ -18,9 +18,18 @@ class UCP_WebMCP
     {
         // Only load on frontend
         if (!is_admin()) {
+            add_action('wp_head', array($this, 'inject_mcp_discovery_link'), 1);
             add_action('wp_footer', array($this, 'inject_webmcp_bootstrap'), 5);
             add_action('wp_footer', array($this, 'inject_ucp_tools'), 10);
         }
+    }
+
+    /**
+     * Inject <link rel="mcp"> so AI agents can auto-discover the MCP endpoint.
+     */
+    public function inject_mcp_discovery_link()
+    {
+        echo '<link rel="mcp" href="' . esc_url(rest_url('ucp/v1/mcp')) . '">' . "\n";
     }
 
     /**
