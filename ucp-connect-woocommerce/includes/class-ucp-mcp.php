@@ -151,6 +151,28 @@ class UCP_MCP_Server
                         'required' => array('checkout_id'),
                     ),
                 ),
+                array(
+                    'name' => 'complete_checkout',
+                    'description' => 'Finalizes the checkout and creates a WooCommerce order. Returns an order ID and a payment URL.',
+                    'inputSchema' => array(
+                        'type' => 'object',
+                        'properties' => array(
+                            'checkout_id' => array('type' => 'string', 'description' => 'Checkout ID returned by create_checkout or update_checkout.'),
+                        ),
+                        'required' => array('checkout_id'),
+                    ),
+                ),
+                array(
+                    'name' => 'pay_with_bitcoin',
+                    'description' => 'Finalizes checkout and returns a Bitcoin payment address, BTC amount, and a bitcoin: URI. Present the address and amount to the customer so they can send Bitcoin to complete the purchase.',
+                    'inputSchema' => array(
+                        'type' => 'object',
+                        'properties' => array(
+                            'checkout_id' => array('type' => 'string', 'description' => 'Checkout ID returned by create_checkout or update_checkout.'),
+                        ),
+                        'required' => array('checkout_id'),
+                    ),
+                ),
             ),
         );
     }
@@ -181,23 +203,23 @@ class UCP_MCP_Server
                 return $res->get_data();
 
             case 'update_checkout':
-                // Simulate updating checkout (e.g., adding billing email to an order)
-                if (empty($args['checkout_id'])) {
-                    throw new Exception('Missing checkout_id');
-                }
-                $order = wc_get_order($args['checkout_id']);
-                if (!$order) {
-                    throw new Exception('Invalid checkout_id');
-                }
-                if (!empty($args['email'])) {
-                    $order->set_billing_email(sanitize_email($args['email']));
-                    $order->save();
-                }
-                return array(
-                    'status' => 'updated',
-                    'checkout_id' => $args['checkout_id'],
-                    'total' => $order->get_total(),
-                );
+                $api = new UCP_API();
+                $req = new WP_REST_Request();
+                $checkout_id = isset($args['checkout_id']) ? $args['checkout_id'] : '';
+                $req->set_param('id', $checkout_id);
+                $req->set_body_params($args);
+                $res = $api->update_checkout($req);
+                return $res->get_data();
+
+            case 'complete_checkout':
+                $store_api = new UCP_Store_API();
+                $checkout_id = isset($args['checkout_id']) ? $args['checkout_id'] : '';
+                return $store_api->complete_checkout($checkout_id);
+
+            case 'pay_with_bitcoin':
+                $store_api = new UCP_Store_API();
+                $checkout_id = isset($args['checkout_id']) ? $args['checkout_id'] : '';
+                return $store_api->pay_with_bitcoin($checkout_id);
 
             default:
                 throw new Exception('Tool not found: ' . $tool_name);

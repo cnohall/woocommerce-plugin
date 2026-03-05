@@ -221,6 +221,69 @@ class UCP_Store_API
     }
 
     /**
+     * Complete checkout and return a Bitcoin payment address + amount.
+     */
+    public function pay_with_bitcoin($checkout_id)
+    {
+        $cart_token = $this->extract_cart_token($checkout_id);
+
+        // blockonomics is not a Blocks-compatible gateway, so submit with bacs
+        // then swap the payment method on the resulting order.
+        $result = $this->store_api_request(
+            '/checkout',
+            'POST',
+            array('payment_method' => 'bacs'),
+            $cart_token
+        );
+
+        $order_id = $result['data']['order_id'] ?? null;
+        if (!$order_id) {
+            throw new Exception('Failed to create WooCommerce order from cart');
+        }
+
+        $wc_order = wc_get_order($order_id);
+        if (!$wc_order) {
+            throw new Exception('Order ' . $order_id . ' not found after creation');
+        }
+
+        $wc_order->set_payment_method('blockonomics');
+        $wc_order->set_payment_method_title('Bitcoin');
+        $wc_order->save();
+
+        // Load Blockonomics (lives one directory up from this plugin)
+        $blockonomics_php = dirname(UCP_CONNECT_PATH) . '/php/Blockonomics.php';
+        if (!file_exists($blockonomics_php)) {
+            throw new Exception('Blockonomics plugin class not found');
+        }
+        include_once $blockonomics_php;
+
+        $blockonomics = new Blockonomics();
+        $order_data   = $blockonomics->create_new_order($order_id, 'btc');
+
+        if (isset($order_data['error'])) {
+            throw new Exception('Blockonomics: ' . $order_data['error']);
+        }
+
+        // Persist record so payment callbacks and status checks work
+        $blockonomics->insert_order($order_data);
+
+        $address    = $order_data['address'];
+        $satoshi    = $order_data['expected_satoshi'];
+        $btc_amount = $satoshi / 1e8;
+
+        return array(
+            'order_id'       => $order_id,
+            'btc_address'    => $address,
+            'btc_amount'     => $btc_amount,
+            'satoshi_amount' => $satoshi,
+            'fiat_amount'    => $order_data['expected_fiat'],
+            'currency'       => $order_data['currency'] ?? get_woocommerce_currency(),
+            'payment_uri'    => 'bitcoin:' . $address . '?amount=' . $btc_amount,
+            'status_url'     => $wc_order->get_checkout_payment_url(),
+        );
+    }
+
+    /**
      * Extract cart token from checkout ID.
      */
     private function extract_cart_token($checkout_id)
