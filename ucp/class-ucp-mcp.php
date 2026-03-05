@@ -170,6 +170,18 @@ class UCP_MCP_Server
                         'required' => array('checkout_id'),
                     ),
                 ),
+                array(
+                    'name' => 'get_order_status',
+                    'description' => 'Check the current status of an order. Works before and after payment.',
+                    'inputSchema' => array(
+                        'type' => 'object',
+                        'properties' => array(
+                            'order_id'  => array('type' => 'integer', 'description' => 'Order ID returned by pay_with_bitcoin or complete_checkout.'),
+                            'order_key' => array('type' => 'string',  'description' => 'Order key from the track_url (the ?key=... parameter).'),
+                        ),
+                        'required' => array('order_id', 'order_key'),
+                    ),
+                ),
             ),
         );
     }
@@ -218,6 +230,15 @@ class UCP_MCP_Server
                 $store_api = new UCP_Store_API();
                 $checkout_id = isset($args['checkout_id']) ? $args['checkout_id'] : '';
                 return $store_api->pay_with_bitcoin($checkout_id);
+
+            case 'get_order_status':
+                $api = new UCP_API();
+                $req = new WP_REST_Request('GET');
+                $req->set_param('id', isset($args['order_id']) ? $args['order_id'] : 0);
+                $req->set_param('key', isset($args['order_key']) ? $args['order_key'] : '');
+                $res = $api->get_order_status($req);
+                if (is_wp_error($res)) throw new Exception($res->get_error_message());
+                return $res->get_data();
 
             default:
                 throw new Exception('Tool not found: ' . $tool_name);

@@ -51,6 +51,16 @@ class UCP_API
             ),
         ));
 
+        register_rest_route(self::NAMESPACE, '/order/(?P<id>\d+)', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_order_status'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'id' => array('validate_callback' => function ($p) { return is_numeric($p); }),
+                'key' => array('required' => true),
+            ),
+        ));
+
         register_rest_route(self::NAMESPACE, '/checkout/(?P<id>[a-zA-Z0-9%=_-]+)/complete', array(
             'methods' => 'POST',
             'callback' => array($this, 'complete_checkout'),
@@ -237,5 +247,39 @@ class UCP_API
         } catch (Exception $e) {
             return new WP_Error('complete_error', $e->getMessage(), array('status' => 500));
         }
+    }
+
+    public function get_order_status($request)
+    {
+        $order_id  = absint($request->get_param('id'));
+        $order_key = sanitize_text_field($request->get_param('key'));
+
+        $order = wc_get_order($order_id);
+
+        if (!$order || $order->get_order_key() !== $order_key) {
+            return new WP_Error('invalid_order', 'Order not found or invalid key', array('status' => 404));
+        }
+
+        $items = array();
+        foreach ($order->get_items() as $item) {
+            $items[] = array(
+                'name'     => $item->get_name(),
+                'quantity' => $item->get_quantity(),
+                'total'    => (float) $item->get_total(),
+            );
+        }
+
+        return new WP_REST_Response(array(
+            'order_id'       => $order_id,
+            'status'         => $order->get_status(),
+            'status_label'   => wc_get_order_status_name($order->get_status()),
+            'payment_method' => $order->get_payment_method(),
+            'total'          => (float) $order->get_total(),
+            'currency'       => $order->get_currency(),
+            'line_items'     => $items,
+            'date_created'   => $order->get_date_created() ? $order->get_date_created()->format('c') : null,
+            'date_paid'      => $order->get_date_paid() ? $order->get_date_paid()->format('c') : null,
+            'track_url'      => $order->get_checkout_order_received_url(),
+        ), 200);
     }
 }

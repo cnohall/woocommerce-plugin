@@ -138,7 +138,8 @@ class UCP_Store_API
             'fiat_amount'    => $order_data['expected_fiat'],
             'currency'       => $order_data['currency'] ?? get_woocommerce_currency(),
             'payment_uri'    => 'bitcoin:' . $address . '?amount=' . $btc_amount,
-            'status_url'     => $order->get_checkout_payment_url(),
+            'pay_url'        => $order->get_checkout_payment_url(),
+            'track_url'      => $order->get_checkout_order_received_url(),
         );
     }
 
