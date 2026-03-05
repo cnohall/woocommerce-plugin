@@ -400,13 +400,17 @@ class UCP_WebMCP
                         }
                     ];
 
-                // Register tools on navigator.modelContext using registerTool() (native
-                // browser extension API) or provideContext() (@mcp-b/global polyfill).
-                // Returns true if registration succeeded.
+                // Track which modelContext instance we last registered on.
+                // If the native browser extension replaces the polyfill's object we
+                // detect the change and re-register on the new instance.
+                var _ucpRegisteredOn = null;
+
                 function registerUCPTools() {
                     var mc = window.navigator && window.navigator.modelContext;
                     if (!mc) return false;
+                    if (mc === _ucpRegisteredOn) return true; // already registered on this instance
 
+                    _ucpRegisteredOn = mc;
                     try {
                         if (typeof mc.registerTool === 'function') {
                             ucpTools.forEach(function (tool) { mc.registerTool(tool); });
@@ -415,10 +419,12 @@ class UCP_WebMCP
                             mc.provideContext({ tools: ucpTools });
                             console.log('[UCP Connect] Registered ' + ucpTools.length + ' tools via provideContext()');
                         } else {
+                            _ucpRegisteredOn = null;
                             return false;
                         }
                     } catch (e) {
                         console.error('[UCP Connect] Registration error:', e);
+                        _ucpRegisteredOn = null;
                         return false;
                     }
 
@@ -428,13 +434,11 @@ class UCP_WebMCP
                     return true;
                 }
 
-                // Try immediately, then retry every 100ms for up to 5 seconds.
-                if (!registerUCPTools()) {
-                    var _ucpInterval = setInterval(function () {
-                        if (registerUCPTools()) clearInterval(_ucpInterval);
-                    }, 100);
-                    setTimeout(function () { clearInterval(_ucpInterval); }, 5000);
-                }
+                // Poll every 100ms for 10 seconds.
+                // Keeps running after the first registration so we can re-register
+                // if the browser extension replaces the polyfill's modelContext object.
+                var _ucpInterval = setInterval(registerUCPTools, 100);
+                setTimeout(function () { clearInterval(_ucpInterval); }, 10000);
             })();
         </script>
         <?php
