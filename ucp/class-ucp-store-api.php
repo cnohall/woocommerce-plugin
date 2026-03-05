@@ -6,148 +6,75 @@ if (!defined('ABSPATH')) {
 
 /**
  * UCP Store API Handler.
- * Uses WooCommerce Store API (/wc/store/v1) for stateless checkout.
+ * Stateless: cart data is encoded in the checkout token.
+ * Orders are created via WooCommerce PHP API when payment is requested.
  */
 class UCP_Store_API
 {
-    private function store_api_request($endpoint, $method = 'GET', $body = null, $cart_token = null)
-    {
-        $url = rest_url('wc/store/v1' . $endpoint);
-
-        $args = array(
-            'method' => $method,
-            'headers' => array(
-                'Content-Type' => 'application/json',
-                'Nonce' => wp_create_nonce('wc_store_api'),
-            ),
-        );
-
-        if ($cart_token) {
-            $args['headers']['Cart-Token'] = $cart_token;
-        }
-
-        if ($body && in_array($method, array('POST', 'PUT', 'PATCH'))) {
-            $args['body'] = json_encode($body);
-        }
-
-        $response = wp_remote_request($url, $args);
-
-        if (is_wp_error($response)) {
-            throw new Exception('Store API request failed: ' . $response->get_error_message());
-        }
-
-        $status = wp_remote_retrieve_response_code($response);
-        $data = json_decode(wp_remote_retrieve_body($response), true);
-
-        $response_cart_token = wp_remote_retrieve_header($response, 'Cart-Token');
-
-        if ($status >= 400) {
-            $error_message = isset($data['message']) ? $data['message'] : 'Unknown error';
-            throw new Exception("Store API error ({$status}): {$error_message}");
-        }
-
-        return array(
-            'data' => $data,
-            'cart_token' => $response_cart_token ?: $cart_token,
-        );
-    }
-
+    /**
+     * Create a checkout session from a list of items.
+     */
     public function create_checkout($items)
     {
-        $cart_token = null;
+        $line_items = array();
+        $subtotal = 0.0;
 
         foreach ($items as $item) {
-            $result = $this->store_api_request(
-                '/cart/add-item',
-                'POST',
-                array(
-                    'id' => $item['id'],
-                    'quantity' => $item['quantity'],
-                ),
-                $cart_token
-            );
-            $cart_token = $result['cart_token'];
-        }
-
-        $cart_result = $this->store_api_request('/cart', 'GET', null, $cart_token);
-
-        return $this->format_checkout_response($cart_result['data'], $cart_token);
-    }
-
-    public function update_checkout($checkout_id, $updates)
-    {
-        $cart_token = $this->extract_cart_token($checkout_id);
-
-        if (isset($updates['shipping_address'])) {
-            $address = $updates['shipping_address'];
-            $this->store_api_request(
-                '/cart/update-customer',
-                'POST',
-                array(
-                    'billing_address' => array(
-                        'first_name' => $address['first_name'] ?? '',
-                        'last_name' => $address['last_name'] ?? '',
-                        'address_1' => $address['address_line1'] ?? '',
-                        'city' => $address['city'] ?? '',
-                        'state' => $address['region'] ?? '',
-                        'postcode' => $address['postal_code'] ?? '',
-                        'country' => $address['country'] ?? '',
-                        'email' => 'guest@example.com',
-                    ),
-                    'shipping_address' => array(
-                        'first_name' => $address['first_name'] ?? '',
-                        'last_name' => $address['last_name'] ?? '',
-                        'address_1' => $address['address_line1'] ?? '',
-                        'city' => $address['city'] ?? '',
-                        'state' => $address['region'] ?? '',
-                        'postcode' => $address['postal_code'] ?? '',
-                        'country' => $address['country'] ?? '',
-                    ),
-                ),
-                $cart_token
-            );
-        }
-
-        if (isset($updates['discounts']['codes'])) {
-            foreach ($updates['discounts']['codes'] as $code) {
-                $this->store_api_request(
-                    '/cart/apply-coupon',
-                    'POST',
-                    array('code' => $code),
-                    $cart_token
-                );
+            $product = wc_get_product(absint($item['id']));
+            if (!$product || !$product->is_purchasable()) {
+                continue;
             }
+            $qty = max(1, absint($item['quantity'] ?? 1));
+            $price = (float) $product->get_price();
+            $line_total = $price * $qty;
+            $subtotal += $line_total;
+
+            $line_items[] = array(
+                'id' => (int) $product->get_id(),
+                'name' => $product->get_name(),
+                'quantity' => $qty,
+                'price' => $price,
+                'total' => $line_total,
+            );
         }
 
-        $cart_result = $this->store_api_request('/cart', 'GET', null, $cart_token);
-
-        return $this->format_checkout_response($cart_result['data'], $cart_token);
-    }
-
-    public function complete_checkout($checkout_id)
-    {
-        $cart_token = $this->extract_cart_token($checkout_id);
-
-        $result = $this->store_api_request(
-            '/checkout',
-            'POST',
-            array(
-                'payment_method' => 'bacs',
-            ),
-            $cart_token
+        $token_data = array(
+            'items' => $line_items,
+            'address' => array(),
+            'coupons' => array(),
         );
 
-        $order_id = $result['data']['order_id'] ?? null;
+        return $this->build_response(base64_encode(json_encode($token_data)), $token_data, $subtotal);
+    }
 
-        if (!$order_id) {
-            throw new Exception('Failed to create order from checkout');
+    /**
+     * Update an existing checkout with address or discount codes.
+     */
+    public function update_checkout($checkout_id, $updates)
+    {
+        $token_data = $this->decode_token($checkout_id);
+
+        if (!empty($updates['shipping_address'])) {
+            $token_data['address'] = $updates['shipping_address'];
         }
 
-        $order = wc_get_order($order_id);
-
-        if (!$order) {
-            throw new Exception('Order created but could not be retrieved');
+        if (!empty($updates['discounts']['codes'])) {
+            $token_data['coupons'] = array_merge(
+                $token_data['coupons'] ?? array(),
+                $updates['discounts']['codes']
+            );
         }
+
+        $subtotal = array_sum(array_column($token_data['items'], 'total'));
+        return $this->build_response(base64_encode(json_encode($token_data)), $token_data, $subtotal);
+    }
+
+    /**
+     * Finalize checkout — create a WC order and return a payment URL for browser checkout.
+     */
+    public function complete_checkout($checkout_id)
+    {
+        $order = $this->create_order_from_token($checkout_id, 'bacs');
 
         return array(
             'status' => 'requires_escalation',
@@ -157,38 +84,19 @@ class UCP_Store_API
                     'type' => 'info',
                     'code' => 'ESCALATION_REQUIRED',
                     'content' => 'Payment requires browser checkout. Please follow the link to complete payment.',
-                    'severity' => 'escalation'
-                )
-            )
+                    'severity' => 'escalation',
+                ),
+            ),
         );
     }
 
+    /**
+     * Finalize checkout and return a Bitcoin address + amount.
+     */
     public function pay_with_bitcoin($checkout_id)
     {
-        $cart_token = $this->extract_cart_token($checkout_id);
-
-        // Blockonomics is not a Blocks-compatible gateway, so submit with bacs
-        // then swap the payment method on the resulting order.
-        $result = $this->store_api_request(
-            '/checkout',
-            'POST',
-            array('payment_method' => 'bacs'),
-            $cart_token
-        );
-
-        $order_id = $result['data']['order_id'] ?? null;
-        if (!$order_id) {
-            throw new Exception('Failed to create WooCommerce order from cart');
-        }
-
-        $wc_order = wc_get_order($order_id);
-        if (!$wc_order) {
-            throw new Exception('Order ' . $order_id . ' not found after creation');
-        }
-
-        $wc_order->set_payment_method('blockonomics');
-        $wc_order->set_payment_method_title('Bitcoin');
-        $wc_order->save();
+        $order = $this->create_order_from_token($checkout_id, 'blockonomics');
+        $order_id = $order->get_id();
 
         $blockonomics_php = dirname(dirname(__FILE__)) . '/php/Blockonomics.php';
         if (!file_exists($blockonomics_php)) {
@@ -217,49 +125,101 @@ class UCP_Store_API
             'fiat_amount'    => $order_data['expected_fiat'],
             'currency'       => $order_data['currency'] ?? get_woocommerce_currency(),
             'payment_uri'    => 'bitcoin:' . $address . '?amount=' . $btc_amount,
-            'status_url'     => $wc_order->get_checkout_payment_url(),
+            'status_url'     => $order->get_checkout_payment_url(),
         );
     }
 
-    private function format_checkout_response($checkout_data, $cart_token)
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Decode a base64-JSON checkout token into an array.
+     */
+    private function decode_token($checkout_id)
     {
-        $order_id = $checkout_data['order_id'] ?? 0;
-
-        $checkout_id = base64_encode("{$order_id}:{$cart_token}");
-
-        return array(
-            'id' => $checkout_id,
-            'status' => 'cart',
-            'currency' => $checkout_data['currency_code'] ?? get_woocommerce_currency(),
-            'total' => (float) ($checkout_data['totals']['total_price'] ?? 0) / 100,
-            'subtotal' => (float) ($checkout_data['totals']['total_items'] ?? 0) / 100,
-            'tax_total' => (float) ($checkout_data['totals']['total_tax'] ?? 0) / 100,
-            'shipping_total' => (float) ($checkout_data['totals']['total_shipping'] ?? 0) / 100,
-            'discount_total' => (float) ($checkout_data['totals']['total_discount'] ?? 0) / 100,
-            'applied_coupons' => array_map(function ($coupon) {
-                return $coupon['code'];
-            }, $checkout_data['coupons'] ?? array()),
-            'line_items' => array_map(function ($item) {
-                return array(
-                    'id' => (string) $item['id'],
-                    'name' => $item['name'],
-                    'quantity' => $item['quantity'],
-                    'total' => (float) $item['totals']['line_total'] / 100,
-                );
-            }, $checkout_data['items'] ?? array()),
-        );
-    }
-
-    private function extract_cart_token($checkout_id)
-    {
-        $decoded = base64_decode($checkout_id, true);
-
-        if (!$decoded || strpos($decoded, ':') === false) {
-            throw new Exception('Invalid checkout ID format');
+        $json = base64_decode($checkout_id, true);
+        if ($json === false) {
+            throw new Exception('Invalid checkout ID');
         }
 
-        list($order_id, $cart_token) = explode(':', $decoded, 2);
+        $data = json_decode($json, true);
+        if (!is_array($data) || empty($data['items'])) {
+            throw new Exception('Invalid or empty checkout token');
+        }
 
-        return $cart_token;
+        return $data;
+    }
+
+    /**
+     * Create a WooCommerce order from a checkout token.
+     */
+    private function create_order_from_token($checkout_id, $payment_method)
+    {
+        $token_data = $this->decode_token($checkout_id);
+
+        $order = wc_create_order();
+        if (is_wp_error($order)) {
+            throw new Exception('Failed to create order: ' . $order->get_error_message());
+        }
+
+        foreach ($token_data['items'] as $item) {
+            $product = wc_get_product(absint($item['id']));
+            if ($product) {
+                $order->add_product($product, $item['quantity']);
+            }
+        }
+
+        $addr = !empty($token_data['address']) ? $token_data['address'] : array();
+        $billing = array(
+            'first_name' => $addr['first_name'] ?? '',
+            'last_name'  => $addr['last_name'] ?? '',
+            'address_1'  => $addr['address_line1'] ?? '',
+            'city'       => $addr['city'] ?? '',
+            'state'      => $addr['region'] ?? '',
+            'postcode'   => $addr['postal_code'] ?? '',
+            'country'    => $addr['country'] ?? get_option('woocommerce_default_country', 'US'),
+            'email'      => $addr['email'] ?? 'guest@example.com',
+        );
+        $order->set_address($billing, 'billing');
+        $order->set_address($billing, 'shipping');
+
+        foreach ($token_data['coupons'] ?? array() as $code) {
+            $order->apply_coupon($code);
+        }
+
+        $order->calculate_totals();
+        $order->set_payment_method($payment_method);
+        $order->set_payment_method_title($payment_method === 'blockonomics' ? 'Bitcoin' : 'Bank Transfer');
+        $order->update_status('pending', 'Order created via UCP MCP');
+        $order->save();
+
+        return $order;
+    }
+
+    /**
+     * Build the standard checkout response array.
+     */
+    private function build_response($checkout_id, $token_data, $subtotal)
+    {
+        return array(
+            'id'             => $checkout_id,
+            'status'         => 'cart',
+            'currency'       => get_woocommerce_currency(),
+            'total'          => round($subtotal, 2),
+            'subtotal'       => round($subtotal, 2),
+            'tax_total'      => 0,
+            'shipping_total' => 0,
+            'discount_total' => 0,
+            'applied_coupons' => $token_data['coupons'] ?? array(),
+            'line_items'     => array_map(function ($item) {
+                return array(
+                    'id'       => (string) $item['id'],
+                    'name'     => $item['name'],
+                    'quantity' => $item['quantity'],
+                    'total'    => $item['total'],
+                );
+            }, $token_data['items']),
+        );
     }
 }
