@@ -73,6 +73,35 @@ function blockonomics_woocommerce_init()
     include_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'Blockonomics.php';
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'admin-page.php';
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'class-blockonomics-setup.php';
+
+    // UCP / MCP integration
+    $ucp_path = plugin_dir_path(__FILE__) . 'ucp' . DIRECTORY_SEPARATOR;
+    require_once $ucp_path . 'class-ucp-mapper.php';
+    require_once $ucp_path . 'class-ucp-cart-manager.php';
+    require_once $ucp_path . 'class-ucp-store-api.php';
+    require_once $ucp_path . 'class-ucp-api.php';
+    require_once $ucp_path . 'class-ucp-mcp.php';
+    require_once $ucp_path . 'class-ucp-webmcp.php';
+
+    add_action('rest_api_init', function () {
+        $api = new UCP_API();
+        $api->register_routes();
+        $mcp = new UCP_MCP_Server();
+        $mcp->register_routes();
+    });
+
+    new UCP_WebMCP();
+
+    add_action('init', function () {
+        if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/.well-known/ucp') !== false) {
+            header('Content-Type: application/json');
+            $api = new UCP_API();
+            $response = $api->get_discovery(new WP_REST_Request());
+            echo json_encode($response->get_data());
+            exit;
+        }
+    });
+
     add_action('admin_menu', 'add_page');
     add_action('init', 'load_plugin_translations');
     add_action('woocommerce_order_details_after_order_table', 'nolo_custom_field_display_cust_order_meta', 10, 1);
