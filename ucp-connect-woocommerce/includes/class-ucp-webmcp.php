@@ -401,14 +401,24 @@ class UCP_WebMCP
 
                     // Register tools: use registerTool() for the native browser API,
                     // fall back to provideContext() for the @mcp-b/global polyfill.
-                    if (typeof window.navigator.modelContext.registerTool === 'function') {
+                    var mc = window.navigator.modelContext;
+                    console.log('[UCP Connect] modelContext methods:', Object.keys(mc));
+
+                    if (typeof mc.registerTool === 'function') {
+                        console.log('[UCP Connect] Using registerTool() API');
                         ucpTools.forEach(function (tool) {
-                            window.navigator.modelContext.registerTool(tool);
+                            try {
+                                mc.registerTool(tool);
+                                console.log('[UCP Connect] Registered tool:', tool.name);
+                            } catch (e) {
+                                console.error('[UCP Connect] Failed to register tool:', tool.name, e);
+                            }
                         });
+                    } else if (typeof mc.provideContext === 'function') {
+                        console.log('[UCP Connect] Using provideContext() API');
+                        mc.provideContext({ tools: ucpTools });
                     } else {
-                        window.navigator.modelContext.provideContext({
-                            tools: ucpTools
-                        });
+                        console.error('[UCP Connect] Neither registerTool nor provideContext available. mc =', mc);
                     }
 
                     console.log('[UCP Connect] Registered ' + ucpTools.length + ' UCP commerce tools via navigator.modelContext');
