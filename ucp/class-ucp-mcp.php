@@ -62,7 +62,16 @@ class UCP_MCP_Server
                     break;
                 case 'call_tool':
                 case 'tools/call':
-                    $result = $this->call_tool($params);
+                    $tool_data = $this->call_tool($params);
+                    $result = array(
+                        'content' => array(
+                            array(
+                                'type' => 'text',
+                                'text' => wp_json_encode($tool_data),
+                            ),
+                        ),
+                        'isError' => false,
+                    );
                     break;
                 default:
                     $error = array('code' => -32601, 'message' => 'Method not found: ' . $method);
