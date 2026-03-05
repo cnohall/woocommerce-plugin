@@ -399,11 +399,17 @@ class UCP_WebMCP
                         }
                     ];
 
-                    // Register tools using @mcp-b/global standard API
-                    // provideContext() is the "Bucket A" method - for app-level tools
-                    window.navigator.modelContext.provideContext({
-                        tools: ucpTools
-                    });
+                    // Register tools: use registerTool() for the native browser API,
+                    // fall back to provideContext() for the @mcp-b/global polyfill.
+                    if (typeof window.navigator.modelContext.registerTool === 'function') {
+                        ucpTools.forEach(function (tool) {
+                            window.navigator.modelContext.registerTool(tool);
+                        });
+                    } else {
+                        window.navigator.modelContext.provideContext({
+                            tools: ucpTools
+                        });
+                    }
 
                     console.log('[UCP Connect] Registered ' + ucpTools.length + ' UCP commerce tools via navigator.modelContext');
 
