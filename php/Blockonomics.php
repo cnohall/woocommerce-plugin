@@ -999,55 +999,31 @@ class Blockonomics
         return false;
     }
 
-    /**
-     * Insert a new payment row atomically (no race conditions).
-     *
-     * @param array $order Associative array with keys:
-     *                     order_id, crypto, address, txid, payment_status.
-     * @return array ['status' => 'inserted'|'conflict'|'error', 'message' => string]
-     */
     public function insert_order($order) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'blockonomics_payments';
 
-        // Build atomic conditional insert
-        $sql = $wpdb->prepare(
-            "INSERT INTO $table_name (order_id, crypto, address, txid, payment_status, currency, expected_fiat, expected_satoshi)
-            SELECT %d, %s, %s, %s, %d, %s, %f, %d
-            FROM DUAL
-            WHERE NOT EXISTS (
-                SELECT 1 FROM $table_name 
-                WHERE (crypto = 'BTC' AND address = %s)
-                    OR (crypto = 'USDT' AND txid <> '' AND txid = %s)
-            )",
-            $order['order_id'],
-            $order['crypto'],
-            $order['address'],
-            isset($order['txid']) ? $order['txid'] : '',
-            $order['payment_status'],
-            $order['currency'],
-            $order['expected_fiat'],
-            $order['expected_satoshi'],
-            $order['address'],
-            isset($order['txid']) ? $order['txid'] : ''
+        $result = $wpdb->insert(
+            $table_name,
+            array(
+                'order_id'         => $order['order_id'],
+                'crypto'           => $order['crypto'],
+                'address'          => $order['address'],
+                'txid'             => isset($order['txid']) ? $order['txid'] : '',
+                'payment_status'   => $order['payment_status'],
+                'currency'         => $order['currency'],
+                'expected_fiat'    => $order['expected_fiat'],
+                'expected_satoshi' => $order['expected_satoshi'],
+            ),
+            array('%d', '%s', '%s', '%s', '%d', '%s', '%f', '%d')
         );
 
-        $result = $wpdb->query($sql);
-
-        // --- Error handling ---
         if ($result === false) {
             $error_msg = $wpdb->last_error ?: 'Unknown database error';
-            // Return a structured error for easier handling
-            return array("error"=> 'Failed to insert order into blockonomics_payments: ' . $error_msg);
+            return array("error" => 'Failed to insert order into blockonomics_payments: ' . $error_msg);
         }
 
-        // --- No rows inserted due to condition (NOT EXISTS) ---
-        if ($result === 0) {
-            return array("error"=> 'Order already exists for given crypto address or txid.');
-        }
-
-        // --- Success ---
-        return array("success"=> $result);
+        return array("success" => true);
     }
 
     // Updates an order in blockonomics_payments table
@@ -1093,6 +1069,7 @@ class Blockonomics
                 $this->log('process_order: create_new_order error: ' . $order['error'], 'error');
                 return $order;
             }
+            $this->log('process_order: inserting new order, address=' . $order['address']);
             $result = $this->insert_order($order);
             if (array_key_exists("error", $result)) {
                 // Some error in inserting order to DB, return the error.
