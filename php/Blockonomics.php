@@ -1107,7 +1107,7 @@ class Blockonomics
     public function get_order_by_address($address){
         global $wpdb;
         $order = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM ".$wpdb->prefix."blockonomics_payments WHERE address = %s", array($address)),
+            $wpdb->prepare("SELECT * FROM ".$wpdb->prefix."blockonomics_payments WHERE address = %s ORDER BY order_id DESC LIMIT 1", array($address)),
             ARRAY_A
         );
         if($order){
