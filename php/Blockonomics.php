@@ -679,9 +679,6 @@ class Blockonomics
         return get_option('blockonomics_partial_payments', true);
     }
 
-    public function is_usdt_tenstnet_active(){
-        return get_option('blockonomics_usdt_testnet', false);
-    }
 
     public function is_error_template($template_name) {
         if (strpos($template_name, 'error') === 0) {
@@ -1433,13 +1430,11 @@ class Blockonomics
         $callback_secret = get_option("blockonomics_callback_secret");
         $api_url = WC()->api_request_url('WC_Gateway_Blockonomics');
         $callback_url = add_query_arg('secret', $callback_secret, $api_url);
-        $testnet = $this->is_usdt_tenstnet_active() ? '1' : '0';
         $monitor_url = self::BASE_URL . '/api/monitor_tx';
         $post_data = array(
             'txhash' => $txhash,
             'crypto' => strtoupper($crypto),
             'match_callback' => $callback_url,
-            'testnet' => $testnet,
         );
 
         // Update order with txhash

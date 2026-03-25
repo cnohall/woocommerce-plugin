@@ -382,8 +382,7 @@ function blockonomics_woocommerce_init()
             if ( $crypto === 'bch' ) {
                 $txid_url = Blockonomics::BCH_BASE_URL . '/api/tx?txid=' . $transaction['txid'] . '&addr=' . $transaction['address'];
             } elseif ( $crypto === 'usdt' ) {
-                $subdomain = $blockonomics->is_usdt_tenstnet_active() ? 'sepolia' : 'www';
-                $txid_url = 'https://' . $subdomain . '.etherscan.io/tx/' . $transaction['txid'];
+                $txid_url = 'https://www.etherscan.io/tx/' . $transaction['txid'];
             } else {
                 $txid_url = Blockonomics::BASE_URL . '/#/search?q=' . $transaction['txid'] . '&addr=' . $transaction['address'];
             }
@@ -609,7 +608,6 @@ function blockonomics_uninstall_hook() {
     delete_option('blockonomics_bch');
     delete_option('blockonomics_btc');
     delete_option('blockonomics_underpayment_slack');
-    delete_option('blockonomics_usdt_testnet');
     // blockonomics_lite is only for db version below 1.3
     delete_option('blockonomics_lite');
     delete_option('blockonomics_nojs');
