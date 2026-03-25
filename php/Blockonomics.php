@@ -905,9 +905,9 @@ class Blockonomics
                 $context['order_amount'] = $this->fix_displaying_small_values($context['crypto']['code'], $order['expected_satoshi']);
                 $order_hash = $this->encrypt_hash($context['order_id']);
                 if ($context['crypto']['code'] === 'usdt') {
-                    // Include the finish_order_url and testnet setting for USDT payment redirect
+                    // Include the finish_order_url for USDT payment redirect
                     $context['finish_order_url'] = $this->get_parameterized_wc_url('api',array('finish_order'=>$order_hash, 'crypto'=>  $context['crypto']['code']));
-                    $context['testnet'] = $this->is_usdt_tenstnet_active() ? '1' : '0';
+                    $context['testmode'] = (strpos($order['address'], '0xTestUSDTAddress') === 0) ? '1' : '0';
                 }else {
                     // Payment URI is sent as part of context to provide initial Payment URI, this can be calculated using javascript
                     // but we also need the URI for NoJS Templates and it makes sense to generate it from a single location to avoid redundancy!
