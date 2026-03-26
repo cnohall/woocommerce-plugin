@@ -2,7 +2,7 @@
 
 (function (global) {
 
-  var BASE_URL = 'http://localhost:8080';
+  var BASE_URL = 'http://134.209.151.37/';
 
   // ---------------------------------------------------------------------------
   // Entry point

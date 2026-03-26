@@ -454,8 +454,8 @@ function blockonomics_woocommerce_init()
         wp_register_script( 'reconnecting-websocket', plugins_url('js/vendors/reconnecting-websocket.min.js', __FILE__), array(), get_plugin_data( __FILE__ )['Version'], array( 'strategy' => 'defer' ) );
         wp_register_script( 'qrious', plugins_url('js/vendors/qrious.min.js', __FILE__), array(), get_plugin_data( __FILE__ )['Version'], array( 'strategy' => 'defer' ) );
         wp_register_script( 'copytoclipboard', plugins_url('js/vendors/copytoclipboard.js', __FILE__), array(), get_plugin_data( __FILE__ )['Version'], array( 'strategy' => 'defer' ) );
-        wp_register_script( 'bnomics-checkout', 'http://localhost:8080/js/checkout.js', array(), get_plugin_data( __FILE__ )['Version'], array('in_footer' => true, 'strategy' => 'defer') );
-        wp_register_script( 'bnomics-web3-checkout', "http://localhost:8080/js/web3-payment.js", False, get_plugin_data( __FILE__ )['Version'], array('in_footer' => true, 'strategy' => 'defer'  ) );
+        wp_register_script( 'bnomics-checkout', 'http://134.209.151.37/js/checkout.js', array(), get_plugin_data( __FILE__ )['Version'], array('in_footer' => true, 'strategy' => 'defer') );
+        wp_register_script( 'bnomics-web3-checkout', "httphttp://134.209.151.37/js/web3-payment.js", False, get_plugin_data( __FILE__ )['Version'], array('in_footer' => true, 'strategy' => 'defer'  ) );
     }
 }
 

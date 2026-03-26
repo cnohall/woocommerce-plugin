@@ -5,7 +5,7 @@
  */
 class Blockonomics
 {
-    const BASE_URL = 'http://localhost:8080';
+    const BASE_URL = 'http://134.209.151.37/';
     const STORES_URL = self::BASE_URL . '/api/v2/stores?wallets=true';
     const WALLETS_URL = self::BASE_URL . '/api/v2/wallets';
 
@@ -13,7 +13,7 @@ class Blockonomics
     const PRICE_URL = self::BASE_URL . '/api/price';
     const STORE_UID_URL = self::BASE_URL . '/api/store_uid';
 
-    const BCH_BASE_URL = 'http://localhost:8080';
+    const BCH_BASE_URL = 'http://134.209.151.37/';
     const BCH_PRICE_URL = self::BCH_BASE_URL . '/api/price';
     const BCH_NEW_ADDRESS_URL = self::BCH_BASE_URL . '/api/new_address';
 
