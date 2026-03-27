@@ -5,7 +5,7 @@
  */
 class Blockonomics
 {
-    const BASE_URL = 'http://134.209.151.37/';
+    const BASE_URL = 'https://whmcs.testblockonomics.com/';
     const STORES_URL = self::BASE_URL . '/api/v2/stores?wallets=true';
     const WALLETS_URL = self::BASE_URL . '/api/v2/wallets';
 
@@ -13,7 +13,7 @@ class Blockonomics
     const PRICE_URL = self::BASE_URL . '/api/price';
     const STORE_UID_URL = self::BASE_URL . '/api/store_uid';
 
-    const BCH_BASE_URL = 'http://134.209.151.37/';
+    const BCH_BASE_URL = 'https://whmcs.testblockonomics.com/';
     const BCH_PRICE_URL = self::BCH_BASE_URL . '/api/price';
     const BCH_NEW_ADDRESS_URL = self::BCH_BASE_URL . '/api/new_address';
 
@@ -238,7 +238,7 @@ class Blockonomics
         $result['stores'] = is_array($response_data->data) ? $response_data->data : [];
 
         if (empty($result['stores'])) {
-            $result['error'] = __('Please add a <a href="http://134.209.151.37/dashboard#/store" target="_blank"><i>Store</i></a> on Blockonomics Dashboard', 'blockonomics-bitcoin-payments');
+            $result['error'] = __('Please add a <a href="https://whmcs.testblockonomics.com/dashboard#/store" target="_blank"><i>Store</i></a> on Blockonomics Dashboard', 'blockonomics-bitcoin-payments');
             return $result;
         }
 
@@ -517,7 +517,7 @@ class Blockonomics
         }
 
         if (empty($wallets)) {
-            return ['error' => __('Please add a <a href="http://134.209.151.37/dashboard#/wallet" target="_blank"><i>Wallet</i></a> on Blockonomics Dashboard', 'blockonomics-bitcoin-payments')];
+            return ['error' => __('Please add a <a href="https://whmcs.testblockonomics.com/dashboard#/wallet" target="_blank"><i>Wallet</i></a> on Blockonomics Dashboard', 'blockonomics-bitcoin-payments')];
         }
 
         return ['wallets' => $wallets];
@@ -551,11 +551,11 @@ class Blockonomics
         $match_type = $match_result['match_type'];
 
         if ($match_type === 'none') {
-            return $this->setup_error(__(var_export($stores_result['stores'], true) . '   This is the Callback URL:' . $callback_url . 'Please add a <a href="http://134.209.151.37/dashboard#/store" target="_blank"><i>Store</i></a> on Blockonomics Dashboard', 'blockonomics-bitcoin-payments'));
+            return $this->setup_error(__(var_export($stores_result['stores'], true) . '   This is the Callback URL:' . $callback_url . 'Please add a <a href="https://whmcs.testblockonomics.com/dashboard#/store" target="_blank"><i>Store</i></a> on Blockonomics Dashboard', 'blockonomics-bitcoin-payments'));
         }
 
         if ($match_type === 'partial') {
-            return $this->setup_error(__('Please copy Callback URL from Advanced Settings and paste it as your <a href="http://134.209.151.37/dashboard#/store" target="_blank">Store Callback URL</a>', 'blockonomics-bitcoin-payments'));
+            return $this->setup_error(__('Please copy Callback URL from Advanced Settings and paste it as your <a href="https://whmcs.testblockonomics.com/dashboard#/store" target="_blank">Store Callback URL</a>', 'blockonomics-bitcoin-payments'));
         }
 
         if ($match_type === 'empty') {
@@ -577,11 +577,11 @@ class Blockonomics
             // empty store name: Please enable Payment method on Stores
             if (!empty($matching_store->name)){
                 $error_msg = sprintf(
-                    __('Please enable Payment method on your store <a href="http://134.209.151.37/dashboard#/store" target="_blank"><i>%s</i></a>', 'blockonomics-bitcoin-payments'),
+                    __('Please enable Payment method on your store <a href="https://whmcs.testblockonomics.com/dashboard#/store" target="_blank"><i>%s</i></a>', 'blockonomics-bitcoin-payments'),
                     esc_html($matching_store->name)
                 );
             } else{
-                $error_msg = __('Please enable Payment method on <a href="http://134.209.151.37/dashboard#/store" target="_blank"><i>Stores</i></a>', 'blockonomics-bitcoin-payments');
+                $error_msg = __('Please enable Payment method on <a href="https://whmcs.testblockonomics.com/dashboard#/store" target="_blank"><i>Stores</i></a>', 'blockonomics-bitcoin-payments');
             }
             return $this->setup_error($error_msg);
         }
@@ -593,7 +593,7 @@ class Blockonomics
         if ($duplicate_count > 0) {
             $store_name = !empty($matching_store->name) ? $matching_store->name : __('(unnamed)', 'blockonomics-bitcoin-payments');
             $notice = sprintf(
-                __('Note: Found %d duplicate store(s) with matching callback URL. Using "%s" which has payments enabled. You may want to remove unused stores from your <a href="http://134.209.151.37/dashboard#/store" target="_blank">Blockonomics dashboard</a>.', 'blockonomics-bitcoin-payments'),
+                __('Note: Found %d duplicate store(s) with matching callback URL. Using "%s" which has payments enabled. You may want to remove unused stores from your <a href="https://whmcs.testblockonomics.com/dashboard#/store" target="_blank">Blockonomics dashboard</a>.', 'blockonomics-bitcoin-payments'),
                 $duplicate_count,
                 esc_html($store_name)
             );

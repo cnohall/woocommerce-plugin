@@ -6,7 +6,7 @@
     <?php
     printf(
     esc_html__('Note to webmaster: Please enable Payment method on %s to enable crypto payments.', 'blockonomics-bitcoin-payments'),
-    '<a href="http://134.209.151.37/dashboard#/store" target="_blank">Stores</a>'
+    '<a href="https://whmcs.testblockonomics.com/dashboard#/store" target="_blank">Stores</a>'
     );
     ?>
     </p>

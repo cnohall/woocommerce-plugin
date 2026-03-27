@@ -2,7 +2,7 @@
 
 (function (global) {
 
-  var BASE_URL = 'http://134.209.151.37/';
+  var BASE_URL = 'https://whmcs.testblockonomics.com/';
 
   // ---------------------------------------------------------------------------
   // Entry point
