@@ -39,7 +39,7 @@ class FormFields {
                 'subtitle' => __('Title', 'blockonomics-bitcoin-payments'),
                 'type' => 'text',
                 'description' => __('Payment method for <i>bitcoin</i> displayed to the user during checkout.', 'blockonomics-bitcoin-payments'),
-                'default' => __('Crypto', 'blockonomics-bitcoin-payments'),
+                'default' => __('Pay with Crypto', 'blockonomics-bitcoin-payments'),
                 'placeholder' => __('Title', 'blockonomics-bitcoin-payments')
             ),
             'description' => array(
@@ -69,11 +69,11 @@ class FormFields {
         $form_fields['bitcoin_discount'] = array(
             'title' => __('Advanced<p class="block-title-desc">Setting for advanced control</p>', 'blockonomics-bitcoin-payments'),
             'type' => 'number',
-            'description' => __('Give customers discount for paying via bitcoin(0-20)', 'blockonomics-bitcoin-payments'),
-            'subtitle' => __('Bitcoin Payment Discount %', 'blockonomics-bitcoin-payments'),
+            'description' => __('Offer customers a discount for paying via crypto. Maximum 20%', 'blockonomics-bitcoin-payments'),
+            'subtitle' => __('Crypto Payment Discount %', 'blockonomics-bitcoin-payments'),
             'default' => get_option('blockonomics_bitcoin_discount', 0),
             'add_divider' => true,
-            'placeholder' => __('Bitcoin Payment Discount %', 'blockonomics-bitcoin-payments'),
+            'placeholder' => '',
             'custom_attributes' => ['step' => '0.1', 'min' => '0', 'max' => '20']
         );
         $form_fields['extra_margin'] = array(
@@ -94,13 +94,6 @@ class FormFields {
             'default' =>  get_option('blockonomics_underpayment_slack', 0),
             'placeholder' => __('Underpayment Slack %', 'blockonomics-bitcoin-payments'),
             'custom_attributes' => ['step' => '0.1', 'min' => '0', 'max' => '20']
-        );
-        $form_fields['usdt_testnet'] = array(
-            'title' => __('', 'blockonomics-bitcoin-payments'),
-            'type' => 'checkbox',
-            'subtitle' => __('USDT Testnet Mode', 'blockonomics-bitcoin-payments'),
-            'label' => __('USDT payments (if enabled) will be processed on ETH sepolia network', 'blockonomics-bitcoin-payments'),
-            'default' => 'no',
         );
         $form_fields['enable_bch'] = array(
             'title' => __('', 'blockonomics-bitcoin-payments'),

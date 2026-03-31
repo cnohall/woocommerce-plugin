@@ -84,9 +84,6 @@ class WC_Gateway_Blockonomics extends WC_Payment_Gateway
     {
         $callback_secret = get_option('blockonomics_callback_secret');
         $callback_url = WC()->api_request_url('WC_Gateway_Blockonomics');
-        // strip WPML/Polylang language prefix (i.e. /de/, /en-us/) to ensure consistent callback URL
-        // only do this if prefix appears immediately before /wc-api/ to avoid false positives
-        $callback_url = preg_replace('#/[a-z]{2}(-[a-z]{2})?/wc-api/#i', '/wc-api/', $callback_url);
         $callback_url = add_query_arg('secret', $callback_secret, $callback_url);
         return $callback_url;
     }
@@ -361,7 +358,6 @@ class WC_Gateway_Blockonomics extends WC_Payment_Gateway
         update_option('blockonomics_bitcoin_discount', floatval($this->get_option('bitcoin_discount')));
         update_option('blockonomics_margin', floatval($this->get_option('extra_margin')));
         update_option('blockonomics_underpayment_slack', floatval($this->get_option('underpayment_slack')));
-        update_option('blockonomics_usdt_testnet', $this->get_option('usdt_testnet') == 'yes' ? 1 : 0);
         update_option('blockonomics_partial_payments', $this->get_option('partial_payment') == 'yes' ? 1 : 0);
         update_option('blockonomics_api_key', $this->get_option('api_key'));
         update_option('blockonomics_nojs', $this->get_option('no_javascript') == 'yes' ? 1 : 0);
@@ -399,7 +395,6 @@ class WC_Gateway_Blockonomics extends WC_Payment_Gateway
         $txid = isset($_GET['txid']) ? sanitize_text_field(wp_unslash($_GET['txid'])) : "";
         $rbf = isset($_GET['rbf']) ? wp_validate_boolean(intval(wp_unslash($_GET['rbf']))) : "";
         $txhash = isset($_GET["txhash"]) ? sanitize_text_field(wp_unslash($_GET['txhash'])) : "";
-        $testnet = isset($_GET["testnet"]) ? sanitize_text_field(wp_unslash($_GET['testnet'])) : false;
 
         include_once 'Blockonomics.php';
         $blockonomics = new Blockonomics;
@@ -407,14 +402,14 @@ class WC_Gateway_Blockonomics extends WC_Payment_Gateway
         if ($finish_order) {
             $order_id = $blockonomics->decrypt_hash($finish_order);
             if ($crypto == "usdt"){
-                $blockonomics->process_token_order($order_id, $crypto, $txhash); 
+                $blockonomics->process_token_order($order_id, $crypto, $txhash);
             }
             $blockonomics->redirect_finish_order($order_id);
         } else if ($get_amount && $crypto) {
             $order_id = $blockonomics->decrypt_hash($get_amount);
             $blockonomics->get_order_amount_info($order_id, $crypto);
         } else if ($secret && $addr && isset($status) && $value && $txid) {
-            $blockonomics->process_callback($secret, $crypto, $addr, $status, $value, $txid, $rbf, $testnet);
+            $blockonomics->process_callback($secret, $crypto, $addr, $status, $value, $txid, $rbf);
         }
 
         exit();

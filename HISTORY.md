@@ -1,7 +1,11 @@
 == Changelog ==
 
 = 3.9.1  =
-* Fixed PHP 8+ fatal error "Cannot access offset of type string on string" in WooCommerce Blocks integration that could crash some production enviroments
+* Added testmode support for simulated test payments via Blockonomics dashboard
+* Faster checkout page load with parallel API calls
+* Added payment logs under WooCommerce > Status > Logs
+* Orders now set to On Hold while waiting for crypto confirmations
+* Fixed PHP 8+ fatal error in WooCommerce Blocks integration
 
 = 3.9.0  =
 * Performance: Improve checkout page load time

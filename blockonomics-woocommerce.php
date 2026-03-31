@@ -200,34 +200,26 @@ function blockonomics_woocommerce_init()
     }
 
     function apply_bitcoin_discount( $cart ) {
-        // Skip if admin or not on checkout page
-        if ( is_admin() || ! is_checkout() ) {
+        if (is_admin()) {
             return;
         }
-    
-        // Get payment method from multiple sources
-        $payment_method = get_selected_payment_method();
-        
-        if ( empty( $payment_method ) ) {
-            error_log( '[Blockonomics] No payment method available.' );
+        // must be on checkout page OR in Store API request (Block Checkout), care for method not exist error
+        $is_checkout_context = is_checkout() || (method_exists(WC(), 'is_store_api_request') && WC()->is_store_api_request());
+        if (!$is_checkout_context) {
             return;
         }
-    
-        // Only apply discount for Blockonomics payment method
-        if ( $payment_method !== 'blockonomics' ) {
+        if (get_selected_payment_method()!=='blockonomics'){
             return;
         }
-    
-        $discount_percent = floatval( get_option( 'blockonomics_bitcoin_discount', 0 ) );
-        
-        if ( $discount_percent < 0 ) {
-            error_log( '[Blockonomics] Discount not configured or invalid.' );
+
+        $discount_percent = floatval(get_option('blockonomics_bitcoin_discount', 0));
+        if ($discount_percent<=0) {
             return;
         }
-    
-        $discount = $cart->get_subtotal() * ( $discount_percent / 100 );
-        if ( $discount > 0 ) {
-            $cart->add_fee( __( 'Payment Method Discount', 'blockonomics-bitcoin-payments' ), -$discount, false );
+
+        $discount = $cart->get_subtotal()*($discount_percent/100);
+        if ($discount>0) {
+            $cart->add_fee(__('Crypto Payment Discount', 'blockonomics-bitcoin-payments').' ('.$discount_percent.'%)', -$discount, false);
         }
     }
 
@@ -371,9 +363,6 @@ function blockonomics_woocommerce_init()
     {
         $callback_secret = get_option('blockonomics_callback_secret');
         $callback_url = WC()->api_request_url('WC_Gateway_Blockonomics');
-        // strip WPML/Polylang language prefix (i.e. /de/, /en-us/) to ensure consistent callback URL
-        // only do this if prefix appears immediately before /wc-api/ to avoid false positives
-        $callback_url = preg_replace('#/[a-z]{2}(-[a-z]{2})?/wc-api/#i', '/wc-api/', $callback_url);
         $callback_url = add_query_arg('secret', $callback_secret, $callback_url);
         return $callback_url;
     }
@@ -393,8 +382,7 @@ function blockonomics_woocommerce_init()
             if ( $crypto === 'bch' ) {
                 $txid_url = Blockonomics::BCH_BASE_URL . '/api/tx?txid=' . $transaction['txid'] . '&addr=' . $transaction['address'];
             } elseif ( $crypto === 'usdt' ) {
-                $subdomain = $blockonomics->is_usdt_tenstnet_active() ? 'sepolia' : 'www';
-                $txid_url = 'https://' . $subdomain . '.etherscan.io/tx/' . $transaction['txid'];
+                $txid_url = 'https://www.etherscan.io/tx/' . $transaction['txid'];
             } else {
                 $txid_url = Blockonomics::BASE_URL . '/#/search?q=' . $transaction['txid'] . '&addr=' . $transaction['address'];
             }
@@ -486,13 +474,13 @@ function blockonomics_create_table() {
         order_id int NOT NULL,
         payment_status int NOT NULL,
         crypto varchar(4) NOT NULL,
-        address varchar(191) NOT NULL,
+        address varchar(100) NOT NULL,
         expected_satoshi bigint,
         expected_fiat double,
         currency varchar(3),
         paid_satoshi bigint,
         paid_fiat double,
-        txid varchar(191),
+        txid varchar(100) NOT NULL DEFAULT '',
         PRIMARY KEY  (order_id,crypto,address,txid),
         KEY orderkey (order_id,crypto)
     ) $charset_collate;";
@@ -620,7 +608,6 @@ function blockonomics_uninstall_hook() {
     delete_option('blockonomics_bch');
     delete_option('blockonomics_btc');
     delete_option('blockonomics_underpayment_slack');
-    delete_option('blockonomics_usdt_testnet');
     // blockonomics_lite is only for db version below 1.3
     delete_option('blockonomics_lite');
     delete_option('blockonomics_nojs');
