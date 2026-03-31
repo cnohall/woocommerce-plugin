@@ -1110,6 +1110,7 @@ class Blockonomics
         if($order){
             return $order;
         }
+        $this->log('get_order_by_address: no order found for address=' . $address, 'error');
         exit(__("Error: Blockonomics order not found", 'blockonomics-bitcoin-payments'));
     }
 
@@ -1123,6 +1124,7 @@ class Blockonomics
         if($order){
             return $order;
         }
+        $this->log('get_order_by_txid: no order found for txid=' . $txid, 'error');
         exit(__("Error: Blockonomics order not found", 'blockonomics-bitcoin-payments'));
     }
 
@@ -1132,6 +1134,7 @@ class Blockonomics
         if ($callback_secret  && $callback_secret == $secret) {
             return true;
         }
+        $this->log('check_callback_secret: secret mismatch, expected=' . substr($callback_secret, 0, 6) . '... got=' . substr($secret, 0, 6) . '...', 'error');
         exit(__("Error: secret does not match", 'blockonomics-bitcoin-payments'));
     }
 
@@ -1229,6 +1232,7 @@ class Blockonomics
         $wc_order = wc_get_order($order['order_id']);
 
         if (empty($wc_order)) {
+            $this->log('process_callback: WooCommerce order not found for order_id=' . $order['order_id'], 'error');
             exit(__("Error: Woocommerce order not found", 'blockonomics-bitcoin-payments'));
         }
 
