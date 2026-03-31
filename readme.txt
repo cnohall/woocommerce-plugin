@@ -1,5 +1,5 @@
 === Blockonomics Bitcoin Payments ===
-**Tags:** bitcoin, accept bitcoin, bitcoin woocommerce, bitcoin wordpress plugin, bitcoin payments, usdt payments, accept usdt, usdt woocommerce, usdt wordpress plugin
+**Tags:** bitcoin, bitcoin payments, usdt payments, woocommerce, cryptocurrency
 **Requires at least:** 5.6
 **Tested up to:** 6.9
 **Require PHP:** 7.4
