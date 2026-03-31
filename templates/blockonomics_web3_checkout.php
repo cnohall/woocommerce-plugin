@@ -69,8 +69,8 @@
                                 order_amount=<?php echo $order['expected_satoshi']/1e6; ?>
                                 receive_address=<?php echo $order['address']; ?>
                                 redirect_url=<?php echo $context['finish_order_url']; ?>
-                                <?php if ($context['testnet']) {
-                                    echo 'testnet='.$context['testnet'];
+                                <?php if ($context['testmode'] === '1') {
+                                    echo 'testmode=1';
                                 }?>
                             ></web3-payment>
                         </td>

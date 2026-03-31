@@ -1,11 +1,11 @@
 === Blockonomics Bitcoin Payments ===
-**Tags:** bitcoin, accept bitcoin, bitcoin woocommerce, bitcoin wordpress plugin, bitcoin payments, usdt payments, accept usdt, usdt woocommerce, usdt wordpress plugin
+**Tags:** bitcoin, bitcoin payments, usdt payments, woocommerce, cryptocurrency
 **Requires at least:** 5.6
 **Tested up to:** 6.9
 **Require PHP:** 7.4
 **WC requires at least:** 7.0
 **WC tested up to:** 10.4.3
-**Stable tag:** 3.9.0
+**Stable tag:** 3.9.1
 License: MIT
 License URI: http://opensource.org/licenses/MIT
 
