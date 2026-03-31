@@ -24,7 +24,7 @@
         if (typeof window.BlockonomicsCheckout === 'undefined') {
             var el = document.getElementById('bck-payment');
             if (el) {
-                el.innerHTML = '<div class="blockonomics_error"><p>Payment widget failed to load. Please refresh the page.</p></div>';
+                el.innerHTML = '<div class="blockonomics_error"><p>Payment widget failed to load. Please refresh the page.</p><small>store_uid: <?= esc_html($store_uid) ?></small></div>';
             }
             return;
         }
