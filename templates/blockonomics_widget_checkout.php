@@ -12,7 +12,6 @@
  * @var int    $order_id         WooCommerce order ID.
  * @var float  $amount           Order total in fiat.
  * @var string $currency         ISO 4217 fiat currency code, e.g. 'USD'.
- * @var bool   $testnet          Whether USDT testnet (Sepolia) is active.
  * @var int    $timer            Payment window in seconds.
  * @var string $finish_order_url WooCommerce order-received URL for redirect.
  */
@@ -34,8 +33,6 @@
             wp_order_id:  <?= json_encode((string) $order_id) ?>,
             amount:       <?= (float) $amount ?>,
             currency:     <?= json_encode($currency) ?>,
-            <?php if ($testnet): ?>testnet: true,
-            <?php endif; ?>
             timer:        <?= (int) $timer ?>,
             redirect_url: <?= json_encode($finish_order_url) ?>,
         });

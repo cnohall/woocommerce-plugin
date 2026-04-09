@@ -977,7 +977,6 @@ class Blockonomics
             'order_id'         => $order_id,
             'amount'           => (float) $wc_order->get_total(),
             'currency'         => get_woocommerce_currency(),
-            'testnet'          => (bool) get_option('blockonomics_usdt_testnet', false),
             // blockonomics_timeperiod is stored in minutes; widget expects seconds
             'timer'            => (int) get_option('blockonomics_timeperiod', 10) * 60,
             'finish_order_url' => $this->get_wc_order_received_url($order_id),
