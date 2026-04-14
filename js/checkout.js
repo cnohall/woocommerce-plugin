@@ -5,6 +5,112 @@
   var BASE_URL = 'https://whmcs.testblockonomics.com/';
 
   // ---------------------------------------------------------------------------
+  // Styles — injected once into <head>, uses CSS vars overrideable by theme
+  // ---------------------------------------------------------------------------
+
+  function injectStyles() {
+    if (document.getElementById('bck-widget-styles')) return;
+    var css =
+      '.bck-widget{' +
+        '--bck-font-size:0.9em;' +
+        '--bck-text:#333;' +
+        '--bck-muted:#777;' +
+        '--bck-bg:#fff;' +
+        '--bck-border:#ddd;' +
+        '--bck-radius:4px;' +
+        '--bck-btn-bg:#7f54b3;' +
+        '--bck-btn-text:#fff;' +
+        '--bck-btn-radius:3px;' +
+        '--bck-accent:#7f54b3;' +
+        '--bck-pad:20px;' +
+      '}' +
+      '.bck-widget .blockonomics_message,' +
+      '.bck-widget .blockonomics_error{' +
+        'font-family:inherit;' +
+        'font-size:var(--bck-font-size);' +
+        'color:var(--bck-text);' +
+        'background:var(--bck-bg);' +
+        'border:1px solid var(--bck-border);' +
+        'border-radius:var(--bck-radius);' +
+        'padding:var(--bck-pad);' +
+        'max-width:480px;' +
+        'box-sizing:border-box;' +
+        'line-height:1.5;' +
+      '}' +
+      '.bck-widget .blockonomics_error{border-color:#c00;color:#c00;}' +
+      '.bck-widget h3{margin:0 0 12px;font-size:1.1em;font-weight:600;}' +
+      '.bck-widget .bck-crypto-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}' +
+      '.bck-widget .bck-tab{' +
+        'padding:5px 14px;' +
+        'border:1px solid var(--bck-border);' +
+        'border-radius:var(--bck-btn-radius);' +
+        'background:transparent;' +
+        'color:var(--bck-text);' +
+        'cursor:pointer;' +
+        'font-size:var(--bck-font-size);' +
+        'font-family:inherit;' +
+        'transition:background .15s,color .15s;' +
+      '}' +
+      '.bck-widget .bck-tab:hover{background:var(--bck-border);}' +
+      '.bck-widget .bck-tab.bck-tab-active{background:var(--bck-btn-bg);color:var(--bck-btn-text);border-color:var(--bck-btn-bg);}' +
+      '.bck-widget .bck-qr-wrap{text-align:center;margin-bottom:16px;}' +
+      '.bck-widget .bck-qr-wrap canvas{display:inline-block;border:1px solid var(--bck-border);border-radius:var(--bck-radius);padding:8px;background:#fff;}' +
+      '.bck-widget .bck-field{margin-bottom:12px;}' +
+      '.bck-widget .bck-field label{display:block;font-size:.85em;color:var(--bck-muted);margin-bottom:4px;font-weight:normal;}' +
+      '.bck-widget .bck-copy-wrap{display:flex;gap:6px;align-items:stretch;}' +
+      '.bck-widget .bck-copy-wrap input[type="text"]{' +
+        'flex:1;min-width:0;' +
+        'padding:7px 10px;' +
+        'border:1px solid var(--bck-border);' +
+        'border-radius:var(--bck-btn-radius);' +
+        'font-size:var(--bck-font-size);' +
+        'font-family:monospace;' +
+        'color:var(--bck-text);' +
+        'background:var(--bck-bg);' +
+        'box-sizing:border-box;' +
+      '}' +
+      '.bck-widget .bck-copy-btn{' +
+        'padding:7px 14px;' +
+        'background:var(--bck-btn-bg);' +
+        'color:var(--bck-btn-text);' +
+        'border:none;' +
+        'border-radius:var(--bck-btn-radius);' +
+        'cursor:pointer;' +
+        'font-size:var(--bck-font-size);' +
+        'font-family:inherit;' +
+        'white-space:nowrap;' +
+        'transition:opacity .15s;' +
+      '}' +
+      '.bck-widget .bck-copy-btn:hover{opacity:.85;}' +
+      '.bck-widget .bck-footer{' +
+        'display:flex;justify-content:space-between;align-items:center;' +
+        'margin-top:14px;padding-top:10px;' +
+        'border-top:1px solid var(--bck-border);' +
+        'gap:8px;' +
+      '}' +
+      '.bck-widget .bck-footer small{color:var(--bck-muted);font-size:.8em;line-height:1.4;}' +
+      '.bck-widget .time_remaining{font-weight:600;color:var(--bck-accent);}' +
+      '.bck-widget #bck-refresh{' +
+        'background:transparent;' +
+        'border:1px solid var(--bck-border);' +
+        'border-radius:var(--bck-btn-radius);' +
+        'cursor:pointer;font-size:16px;' +
+        'color:var(--bck-muted);' +
+        'padding:3px 8px;line-height:1;flex-shrink:0;' +
+        'transition:color .15s;' +
+      '}' +
+      '.bck-widget #bck-refresh:hover{color:var(--bck-accent);}' +
+      '.bck-widget #bck-refresh:disabled{opacity:.4;cursor:default;}' +
+      '.bck-widget .blockonomics_close{text-align:right;margin-top:12px;}' +
+      '.bck-widget .blockonomics_close a{font-size:.8em;color:var(--bck-muted);text-decoration:none;}' +
+      '.bck-widget .blockonomics_close a:hover{color:var(--bck-text);text-decoration:underline;}';
+    var el = document.createElement('style');
+    el.id = 'bck-widget-styles';
+    el.textContent = css;
+    document.head.appendChild(el);
+  }
+
+  // ---------------------------------------------------------------------------
   // Entry point
   // ---------------------------------------------------------------------------
 
@@ -26,6 +132,9 @@
       console.error('BlockonomicsCheckout: container #' + options.msg_area + ' not found');
       return;
     }
+
+    injectStyles();
+    container.classList.add('bck-widget');
 
     // Runtime state
     var state = {
@@ -380,18 +489,6 @@
         ws.conn.onclose = function () {
           if (!ws.dead) ws.retryTimer = setTimeout(connect, 5000);
         };
-        // Initial Parameters
-        ele.style.width = 0;
-        ele.style.height = ref_position.height - border.top - border.bottom + 'px';
-        ele.style.top = position_y + border.top + 'px';
-        ele.style.left = position_x + border.left + 'px';
-        ele.style.borderTopLeftRadius = style.borderTopLeftRadius;
-        ele.style.borderTopRightRadius = style.borderTopRightRdius;
-        ele.style.borderBottomLeftRadius = style.borderBottomLeftRadius;
-        ele.style.borderBottomRightRadius = style.borderBottomRightRadius;
-        ele.style.backgroundColor = window.getComputedStyle(
-            document.body
-        ).backgroundColor;
 
         ws.conn.onerror = function () { ws.conn.close(); };
       }
