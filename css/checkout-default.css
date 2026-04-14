@@ -124,17 +124,18 @@
     padding:       7px 14px;
     background:    var(--bck-btn-bg);
     color:         var(--bck-btn-text);
-    border:        none;
+    border:        1px solid var(--bck-btn-bg);
     border-radius: var(--bck-btn-radius);
     cursor:        pointer;
     font-size:     var(--bck-font-size);
     font-family:   inherit;
     white-space:   nowrap;
-    transition:    opacity .15s;
+    transition:    filter .15s, color .15s;
 }
 
 .bck-widget .bck-copy-btn:hover {
-    opacity: .85;
+    filter: brightness(0.88);
+    color:  var(--bck-btn-text);
 }
 
 /* Footer */
@@ -190,4 +191,14 @@
 .bck-widget .blockonomics_close a:hover {
     color:           var(--bck-text);
     text-decoration: underline;
+}
+
+/* USDT / web3 component — bridge bck-* vars into the web3-payment component's
+   own custom properties so theme auto-detection covers both screens.           */
+.bck-widget web3-payment,
+.bck-widget #web3-payment {
+    --primary-color:  var(--bck-btn-bg);
+    --text-color:     var(--bck-text);
+    --border-color:   var(--bck-border);
+    --error-color:    #c00;
 }
