@@ -15,25 +15,7 @@
  * @var int    $timer            Payment window in seconds.
  * @var string $finish_order_url WooCommerce order-received URL for redirect.
  */
-$_bck_btn_bg = sanitize_hex_color( get_option( 'woocommerce_email_base_color', '#7f54b3' ) ) ?: '#7f54b3';
 ?>
-
-<style>
-#bck-payment {
-    /* Block themes override via --wp--preset--color--primary automatically;
-       classic themes fall back to the WC email accent colour.            */
-    --bck-btn-bg:     var(--wp--preset--color--primary,     <?php echo esc_attr( $_bck_btn_bg ); ?>);
-    --bck-accent:     var(--wp--preset--color--primary,     <?php echo esc_attr( $_bck_btn_bg ); ?>);
-    /* Neutral surface / text — inherit page values when theme exposes them */
-    --bck-bg:         var(--wp--preset--color--base,        #fff);
-    --bck-text:       var(--wp--preset--color--contrast,    #333);
-    --bck-muted:      var(--wp--preset--color--contrast-2,  #777);
-    --bck-border:     var(--wp--preset--color--contrast-3,  #ddd);
-    /* Shape — theme border-radius if available */
-    --bck-radius:     var(--wp--custom--border-radius,      4px);
-    --bck-btn-radius: var(--wp--custom--button--border--radius, var(--wp--custom--border-radius, 3px));
-}
-</style>
 <div id="bck-payment"></div>
 <script>
 (function () {

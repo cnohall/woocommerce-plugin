@@ -436,6 +436,7 @@ function blockonomics_woocommerce_init()
 
     function bnomics_register_stylesheets(){
         wp_register_style('bnomics-style', plugin_dir_url(__FILE__) . "css/order.css", '', get_plugin_data( __FILE__ )['Version']);
+        wp_register_style('blockonomics-checkout', plugin_dir_url(__FILE__) . "css/checkout-default.css", array(), get_plugin_data( __FILE__ )['Version']);
     }
 
     function bnomics_register_scripts(){

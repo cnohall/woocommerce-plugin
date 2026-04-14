@@ -750,9 +750,43 @@ class Blockonomics
         wp_enqueue_style( 'bnomics-style' );
         if ($template_name === 'checkout' || $template_name === 'widget_checkout') {
             wp_enqueue_script( 'bnomics-checkout' );
-        }elseif ($template_name === 'web3_checkout') {
+            wp_enqueue_style( 'blockonomics-checkout' );
+            // Priority: manual setting → classic-theme auto-detect → CSS var fallback (block themes).
+            $accent = sanitize_hex_color( get_option( 'blockonomics_accent_color', '' ) );
+            if ( ! $accent ) {
+                $accent = $this->get_theme_accent_color();
+            }
+            if ( $accent ) {
+                wp_add_inline_style( 'blockonomics-checkout',
+                    '#bck-payment { --bck-btn-bg: ' . esc_attr( $accent ) . '; --bck-accent: ' . esc_attr( $accent ) . '; }'
+                );
+            }
+        } elseif ($template_name === 'web3_checkout') {
             wp_enqueue_script( 'bnomics-web3-checkout' );
         }
+    }
+
+    /**
+     * Auto-detect the active theme's primary/accent colour for classic themes.
+     * Block themes are handled passively via var(--wp--preset--color--primary) in the CSS.
+     *
+     * @return string Hex colour string, or empty string if not detected.
+     */
+    private function get_theme_accent_color() {
+        // Classic theme customizer keys — ordered most-specific first.
+        $customizer_keys = array(
+            'storefront_accent_color', // Storefront (most popular WC theme)
+            'accent_color',
+            'primary_color',
+            'button_color',
+        );
+        foreach ( $customizer_keys as $key ) {
+            $val = get_theme_mod( $key );
+            if ( $val && is_string( $val ) ) {
+                return sanitize_hex_color( $val ) ?: '';
+            }
+        }
+        return '';
     }
 
     public function set_template_context($context) {
