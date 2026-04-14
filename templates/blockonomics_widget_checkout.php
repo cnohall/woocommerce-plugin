@@ -15,12 +15,9 @@
  * @var int    $timer            Payment window in seconds.
  * @var string $finish_order_url WooCommerce order-received URL for redirect.
  */
-
-<?php
-// Bridge WooCommerce / block-theme colour values into widget CSS vars.
-// JS defaults (in checkout.js) kick in when these are absent.
 $_bck_btn_bg = sanitize_hex_color( get_option( 'woocommerce_email_base_color', '#7f54b3' ) ) ?: '#7f54b3';
 ?>
+
 <style>
 #bck-payment {
     /* Block themes override via --wp--preset--color--primary automatically;
