@@ -16,7 +16,7 @@
     --bck-btn-text:   #fff;
     --bck-btn-radius: 3px;
     --bck-accent:     var(--wp--preset--color--primary, #7f54b3);
-    --bck-pad:        20px;
+    --bck-pad:        16px;
 }
 
 .bck-widget .blockonomics_message,

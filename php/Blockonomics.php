@@ -758,7 +758,8 @@ class Blockonomics
             }
             if ( $accent ) {
                 wp_add_inline_style( 'blockonomics-checkout',
-                    '#bck-payment { --bck-btn-bg: ' . esc_attr( $accent ) . '; --bck-accent: ' . esc_attr( $accent ) . '; }'
+                    '#bck-payment { --bck-btn-bg: ' . esc_attr( $accent ) . '; --bck-accent: ' . esc_attr( $accent ) . '; }' .
+                    '#web3-payment { --primary-color: ' . esc_attr( $accent ) . '; }'
                 );
             }
         } elseif ($template_name === 'web3_checkout') {
