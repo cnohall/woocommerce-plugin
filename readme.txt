@@ -67,6 +67,16 @@ Most common reason for callbacks failing is your webhost blocking incoming callb
 
 You can run our plugin in No JavaScript mode by checking the "No JavaScript checkout page" option in
 WordPress Admin Dashboard > WooCommerce > Settings > Payments > Blockonomics Bitcoin > Advanced.
+
+### How do AI agents pay with crypto on my store?
+
+Enable "Agentic checkout" in WooCommerce > Settings > Payments > Blockonomics Bitcoin > Advanced. Guest checkout must be enabled in WooCommerce.
+
+1. The agent browses products and builds a cart with the WooCommerce Store API (`/wp-json/wc/store/v1/products`, `/cart/add-item`), keeping the `Cart-Token` response header.
+2. The agent checks out with `POST /wp-json/wc/store/v1/checkout` using `"payment_method": "blockonomics"` and `"payment_data": [{"key": "crypto", "value": "btc"}]` (or `usdt`). `payment_result.payment_details` contains `address`, `amount`, `payment_uri` (BTC), `expires_at` and `order_hash`.
+3. The human or the agent pays the exact `amount` to `address` before `expires_at`. After that, fetch the details again for a fresh quote.
+4. USDT (ERC-20) only: after sending, `POST /wp-json/blockonomics/v1/orders/{order_hash}/txhash` with `{"txhash": "0x..."}`. The payment is not detected otherwise.
+5. Poll `GET /wp-json/blockonomics/v1/orders/{order_hash}?crypto=btc` for `payment_status` (`awaiting_payment`, `detected`, `confirmed`, `underpaid`).
 == Screenshots ==
 
 1. Settings panel

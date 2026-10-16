@@ -350,6 +350,7 @@ class WC_Gateway_Blockonomics extends WC_Payment_Gateway
         update_option('blockonomics_partial_payments', $this->get_option('partial_payment') == 'yes' ? 1 : 0);
         update_option('blockonomics_api_key', $this->get_option('api_key'));
         update_option('blockonomics_nojs', $this->get_option('no_javascript') == 'yes' ? 1 : 0);
+        update_option('blockonomics_agentic_checkout', $this->get_option('agentic_checkout') == 'yes' ? 1 : 0);
         update_option('blockonomics_network_confirmation', $this->get_option('network_confirmation'));
         $this->update_option('call_backurls', $this->get_callback_url());
 
@@ -363,11 +364,26 @@ class WC_Gateway_Blockonomics extends WC_Payment_Gateway
         $blockonomics = new Blockonomics;
 
         $order_url = $blockonomics->get_order_checkout_url($order_id);
-
-        return array(
+        $result = array(
             'result'   => 'success',
             'redirect' => $order_url
         );
+
+        // Agentic checkout: Store API checkout with payment_data crypto=btc|usdt.
+        // Store API copies these keys into payment_result.payment_details
+        $crypto = isset($_POST['crypto']) ? sanitize_key(wp_unslash($_POST['crypto'])) : '';
+        if ($crypto && defined('REST_REQUEST') && REST_REQUEST && $blockonomics->is_agentic_checkout_active()) {
+            $details = $blockonomics->get_agentic_payment_details($order_id, $crypto);
+            if (array_key_exists('error', $details)) {
+                return array(
+                    'result'  => 'failure',
+                    'message' => $details['error']
+                );
+            }
+            $result = array_merge($result, $details);
+        }
+
+        return $result;
     }
 
     // Handles requests to the blockonomics page

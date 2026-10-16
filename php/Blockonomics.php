@@ -651,6 +651,89 @@ class Blockonomics
         return get_option('blockonomics_partial_payments', true);
     }
 
+    public function is_agentic_checkout_active(){
+        return (bool) get_option('blockonomics_agentic_checkout', false);
+    }
+
+    // Machine-readable payment details for agentic checkout. An unpaid quote is
+    // reused until it expires so repeated reads don't re-price an amount the payer may already be sending
+    public function get_agentic_payment_details($order_id, $crypto){
+        $active_cryptos = $this->getCachedActiveCurrencies();
+        if (!isset($active_cryptos[$crypto])) {
+            return array('error' => __('Crypto is not enabled for this store', 'blockonomics-bitcoin-payments'));
+        }
+
+        $wc_order = wc_get_order($order_id);
+        $expires_key = 'blockonomics_quote_expires_' . $crypto;
+        $expires_at = (int) $wc_order->get_meta($expires_key);
+        $order = $this->get_order_by_id_and_crypto($order_id, $crypto);
+
+        if (!$order || $order['payment_status'] != 0 || $expires_at <= time()) {
+            $order = $this->process_order($order_id, $crypto);
+            if (array_key_exists('error', $order)) {
+                return $order;
+            }
+            if ($order['payment_status'] == 0) {
+                $expires_at = time() + 60 * intval(get_option('blockonomics_timeperiod', 10));
+                $wc_order->update_meta_data($expires_key, $expires_at);
+                $wc_order->save();
+            }
+        }
+
+        $crypto_obj = $this->getSupportedCurrencies()[$crypto];
+        $amount = rtrim(rtrim(number_format($order['expected_satoshi'] / pow(10, $crypto_obj['decimals']), $crypto_obj['decimals'], '.', ''), '0'), '.');
+
+        $details = array(
+            'order_hash'        => $this->encrypt_hash($order_id),
+            'crypto'            => $crypto,
+            'address'           => $order['address'],
+            'amount'            => $amount,
+            'amount_base_units' => (string) $order['expected_satoshi'],
+            'fiat_amount'       => (string) $order['expected_fiat'],
+            'fiat_currency'     => $order['currency'],
+            'payment_status'    => $this->get_agentic_payment_status($order),
+            'order_status'      => $wc_order->get_status(),
+            'expires_at'        => $order['payment_status'] == 0 ? gmdate('c', $expires_at) : '',
+        );
+        if (isset($crypto_obj['uri'])) {
+            $details['payment_uri'] = $this->get_crypto_payment_uri($crypto_obj, $order['address'], $amount);
+        }
+        if ($crypto === 'usdt') {
+            // USDT is an ERC-20 transfer; the payer must submit the txhash afterwards
+            $details['network'] = (strpos($order['address'], '0xTestUSDTAddress') === 0) ? 'ethereum-testmode' : 'ethereum';
+            $details['txhash_url'] = rest_url('blockonomics/v1/orders/' . $details['order_hash'] . '/txhash');
+        }
+        return $details;
+    }
+
+    private function get_agentic_payment_status($order){
+        if ($order['payment_status'] == 0) {
+            return 'awaiting_payment';
+        }
+        if ($order['payment_status'] == 1) {
+            return 'detected';
+        }
+        if ($order['payment_status'] == 2) {
+            return $this->is_order_underpaid($order) ? 'underpaid' : 'confirmed';
+        }
+        return 'failed';
+    }
+
+    // Agent-submitted USDT txhash. Unlike the admin attach_txhash, never replaces a different bound hash
+    public function agentic_submit_txhash($order_id, $txhash){
+        $txhash = trim($txhash);
+        $row = $this->get_order_by_id_and_crypto($order_id, 'usdt');
+        if ($row && !empty($row['txid'])) {
+            if ($row['txid'] !== $txhash) {
+                return array('error' => __('A different transaction hash is already attached to this order.', 'blockonomics-bitcoin-payments'));
+            }
+            if ($row['payment_status'] > 0) {
+                return array('success' => __('Transaction is already being monitored.', 'blockonomics-bitcoin-payments'));
+            }
+        }
+        return $this->attach_txhash($order_id, $txhash);
+    }
+
 
     // Adds the style for blockonomics checkout page
     public function add_blockonomics_checkout_style($template_name){
@@ -1292,14 +1375,32 @@ class Blockonomics
      */
     public function decrypt_hash($hash)
     {
-        $encryption_algorithm = 'AES-128-CBC';
-        $hashing_algorith = 'sha256';
-        $secret = get_option('blockonomics_callback_secret');;
         // prevent decrypt failing when $hash is not hex or has odd length
-        if (strlen($hash) % 2 || !ctype_xdigit($hash)) {
+        if (!$this->is_valid_hash($hash)) {
             echo __("Error: Incorrect Hash. Hash cannot be validated.", 'blockonomics-bitcoin-payments');
             exit();
         }
+
+        $decrypted = $this->decrypt_order_id($hash);
+        if ($decrypted === false) {
+            echo __("Error: Incorrect hash. Woocommerce order not found.", 'blockonomics-bitcoin-payments');
+            exit();
+        }
+
+        return $decrypted;
+    }
+
+    public function is_valid_hash($hash)
+    {
+        return is_string($hash) && $hash !== '' && strlen($hash) % 2 === 0 && ctype_xdigit($hash);
+    }
+
+    // Non-exiting variant of decrypt_hash: returns the order id, or false when the hash matches no order
+    public function decrypt_order_id($hash)
+    {
+        $encryption_algorithm = 'AES-128-CBC';
+        $hashing_algorith = 'sha256';
+        $secret = get_option('blockonomics_callback_secret');;
 
         // we'll need the binary cipher
         $binaryInput = hex2bin($hash);
@@ -1315,9 +1416,8 @@ class Blockonomics
             $iv
         );
 
-        if (empty(wc_get_order($decrypted))) {
-            echo __("Error: Incorrect hash. Woocommerce order not found.", 'blockonomics-bitcoin-payments');
-            exit();
+        if ($decrypted === false || empty(wc_get_order($decrypted))) {
+            return false;
         }
 
         return $decrypted;
