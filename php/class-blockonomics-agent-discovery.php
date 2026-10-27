@@ -1,0 +1,136 @@
+<?php
+
+/**
+ * Agentic checkout discovery.
+ *
+ * Agents land on storefront HTML and default to driving the UI. These hooks point them
+ * at the JSON flow instead: /llms.txt (fetch agents), a Link header + <link> (crawlers),
+ * and a visually hidden footer note (browser agents reading the DOM / accessibility tree).
+ */
+class Blockonomics_Agent_Discovery {
+
+    const LLMS_PATH = 'llms.txt';
+
+    public static function init() {
+        add_action('parse_request', array(__CLASS__, 'maybe_serve_llms_txt'));
+        add_action('send_headers', array(__CLASS__, 'send_link_header'));
+        add_action('wp_head', array(__CLASS__, 'print_head_link'));
+        add_action('wp_footer', array(__CLASS__, 'print_footer_hint'));
+    }
+
+    private static function is_active() {
+        return (bool) get_option('blockonomics_agentic_checkout', false);
+    }
+
+    private static function llms_url() {
+        return home_url('/' . self::LLMS_PATH);
+    }
+
+    public static function maybe_serve_llms_txt($wp) {
+        if ($wp->request !== self::LLMS_PATH || !self::is_active()) {
+            return;
+        }
+        status_header(200);
+        header('Content-Type: text/markdown; charset=utf-8');
+        header('X-Robots-Tag: noindex');
+        echo self::build_llms_txt();
+        exit;
+    }
+
+    public static function send_link_header() {
+        if (!self::is_active() || headers_sent()) {
+            return;
+        }
+        header('Link: <' . esc_url_raw(self::llms_url()) . '>; rel="describedby"; type="text/markdown"', false);
+    }
+
+    public static function print_head_link() {
+        if (!self::is_active()) {
+            return;
+        }
+        echo '<link rel="alternate" type="text/markdown" title="Agent checkout API" href="' . esc_url(self::llms_url()) . '" />' . "\n";
+    }
+
+    // Clip-hidden, not display:none, so it stays in the accessibility tree browser agents read
+    public static function print_footer_hint() {
+        if (!self::is_active()) {
+            return;
+        }
+        $store = rest_url('wc/store/v1');
+        printf(
+            '<p style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">%s <a href="%s">%s</a>. %s: %s/products, %s/cart, %s/checkout.</p>' . "\n",
+            esc_html__('Note for AI agents: this store can be shopped and paid in crypto through JSON APIs, no browser needed. Instructions:', 'blockonomics-bitcoin-payments'),
+            esc_url(self::llms_url()),
+            esc_html(self::llms_url()),
+            esc_html__('Endpoints', 'blockonomics-bitcoin-payments'),
+            esc_html($store),
+            esc_html($store),
+            esc_html($store)
+        );
+    }
+
+    private static function build_llms_txt() {
+        include_once 'Blockonomics.php';
+        $blockonomics = new Blockonomics;
+        $cryptos = array_keys($blockonomics->getCachedActiveCurrencies());
+        $crypto_list = $cryptos ? implode(', ', $cryptos) : 'btc';
+        $example_crypto = in_array('btc', $cryptos, true) || !$cryptos ? 'btc' : $cryptos[0];
+
+        $store = untrailingslashit(rest_url('wc/store/v1'));
+        $orders = untrailingslashit(rest_url('blockonomics/v1/orders'));
+        $name = wp_strip_all_tags(get_bloginfo('name'));
+        $tagline = wp_strip_all_tags(get_bloginfo('description'));
+        $currency = get_woocommerce_currency();
+
+        $checkout_body = wp_json_encode(array(
+            'payment_method'  => 'blockonomics',
+            'payment_data'    => array(array('key' => 'crypto', 'value' => $example_crypto)),
+            'billing_address' => array(
+                'first_name' => 'Jane',
+                'last_name'  => 'Doe',
+                'email'      => 'jane@example.com',
+                'address_1'  => '1 Main St',
+                'city'       => 'Springfield',
+                'state'      => 'IL',
+                'postcode'   => '62701',
+                'country'    => 'US',
+            ),
+        ), JSON_UNESCAPED_SLASHES);
+
+        $lines = array(
+            "# $name",
+            '',
+            '> ' . ($tagline ? "$tagline. " : '') . "WooCommerce store, prices in $currency. AI agents can browse, check out and pay in crypto ($crypto_list) entirely through JSON APIs. Prefer these over driving the website UI.",
+            '',
+            '## Agent checkout',
+            '',
+            'No API key needed. Send `Content-Type: application/json` on POSTs.',
+            '',
+            "1. Find products: `GET $store/products?search=<term>` (also `?slug=`, `?category=`, `?per_page=`). Use the product `id`.",
+            "2. Start a cart: `GET $store/cart`. Save the `Cart-Token` response header and send it back as a `Cart-Token` request header on every later call (no nonce needed then).",
+            "3. Add items: `POST $store/cart/add-item` with `{\"id\": <product id>, \"quantity\": 1}`. Variable products also need `\"variation\"`.",
+            "4. Check out: `POST $store/checkout` with:",
+            '',
+            '   ```json',
+            "   $checkout_body",
+            '   ```',
+            '',
+            "   `crypto` is one of: $crypto_list. `GET $store/cart` lists required address fields for the shipping country.",
+            '5. Pay: the response `payment_result.payment_details` (key/value list) has `address`, `amount`, `payment_uri` (BTC), `expires_at` and `order_hash`. Send exactly `amount` to `address` before `expires_at`.',
+            "6. USDT only: after sending, `POST $orders/{order_hash}/txhash` with `{\"txhash\": \"0x...\"}`. Unregistered USDT transfers are not detected.",
+            "7. Status: `GET $orders/{order_hash}?crypto=<crypto>` returns `payment_status` (`awaiting_payment`, `detected`, `confirmed`, `underpaid`). Calling it after `expires_at` returns a fresh quote.",
+            '',
+            '## Pages',
+            '',
+            '- Shop: ' . (wc_get_page_id('shop') > 0 ? get_permalink(wc_get_page_id('shop')) : home_url('/')),
+            '- Cart: ' . wc_get_cart_url(),
+            '- Checkout: ' . wc_get_checkout_url(),
+            '',
+            '## Reference',
+            '',
+            '- WooCommerce Store API: https://github.com/woocommerce/woocommerce/tree/trunk/plugins/woocommerce/src/StoreApi/docs',
+            '',
+        );
+        return implode("\n", $lines);
+    }
+}

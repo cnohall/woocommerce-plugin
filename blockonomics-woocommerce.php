@@ -74,6 +74,7 @@ function blockonomics_woocommerce_init()
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'admin-page.php';
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'class-blockonomics-setup.php';
     require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'class-blockonomics-agentic-api.php';
+    require_once plugin_dir_path(__FILE__) . 'php' . DIRECTORY_SEPARATOR . 'class-blockonomics-agent-discovery.php';
 
     add_action('admin_menu', 'add_page');
     add_action('init', 'load_plugin_translations');
@@ -89,6 +90,7 @@ function blockonomics_woocommerce_init()
     add_filter("wp_list_pages_excludes", "bnomics_exclude_pages");
     add_action('admin_menu', 'blockonomics_add_admin_menu');
     add_action('rest_api_init', array('Blockonomics_Agentic_API', 'register_routes'));
+    Blockonomics_Agent_Discovery::init();
 
     if ( is_HPOS_active()) {
         add_action('woocommerce_order_list_table_restrict_manage_orders', 'filter_orders' , 20 );
