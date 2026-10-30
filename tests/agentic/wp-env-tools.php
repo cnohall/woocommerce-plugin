@@ -5,7 +5,6 @@
  *
  *   order <hash>            dump order id, WC status and blockonomics_payments rows
  *   expire <hash> <crypto>  backdate the agentic quote so the next read re-prices
- *   fields                  print the agentic_checkout settings description
  */
 
 $cmd = isset($args[0]) ? $args[0] : '';
@@ -42,11 +41,6 @@ switch ($cmd) {
         WP_CLI::success('quote expired for order ' . $order_id);
         break;
 
-    case 'fields':
-        $fields = FormFields::init_form_fields('');
-        echo $fields['agentic_checkout']['description'] . "\n";
-        break;
-
     default:
-        WP_CLI::error('usage: order <hash> | expire <hash> <crypto> | fields');
+        WP_CLI::error('usage: order <hash> | expire <hash> <crypto>');
 }

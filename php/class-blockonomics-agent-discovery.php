@@ -1,11 +1,8 @@
 <?php
 
 /**
- * Agentic checkout discovery.
- *
- * Agents land on storefront HTML and default to driving the UI. These hooks point them
- * at the JSON flow instead: /llms.txt (fetch agents), a Link header + <link> (crawlers),
- * and a visually hidden footer note (browser agents reading the DOM / accessibility tree).
+ * Points agents at the JSON checkout flow instead of the storefront UI:
+ * /llms.txt, a Link header + <link> tag, and a visually hidden footer note.
  */
 class Blockonomics_Agent_Discovery {
 
@@ -119,12 +116,6 @@ class Blockonomics_Agent_Discovery {
             '5. Pay: the response `payment_result.payment_details` (key/value list) has `address`, `amount`, `payment_uri` (BTC), `expires_at` and `order_hash`. Send exactly `amount` to `address` before `expires_at`.',
             "6. USDT only: after sending, `POST $orders/{order_hash}/txhash` with `{\"txhash\": \"0x...\"}`. Unregistered USDT transfers are not detected.",
             "7. Status: `GET $orders/{order_hash}?crypto=<crypto>` returns `payment_status` (`awaiting_payment`, `detected`, `confirmed`, `underpaid`). Calling it after `expires_at` returns a fresh quote.",
-            '',
-            '## Pages',
-            '',
-            '- Shop: ' . (wc_get_page_id('shop') > 0 ? get_permalink(wc_get_page_id('shop')) : home_url('/')),
-            '- Cart: ' . wc_get_cart_url(),
-            '- Checkout: ' . wc_get_checkout_url(),
             '',
             '## Reference',
             '',

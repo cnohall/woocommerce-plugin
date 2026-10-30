@@ -1,11 +1,8 @@
 <?php
 
 /**
- * Agentic checkout REST API (blockonomics/v1).
- *
- * Agents build the cart and check out through the WooCommerce Store API, then use
- * these routes to read payment details/status and to register USDT transactions.
- * The order hash is the bearer credential, same as the checkout page URL.
+ * blockonomics/v1 routes used after a Store API checkout: payment details/status
+ * and USDT txhash submission. The order hash acts as the credential, same as the checkout page URL.
  */
 class Blockonomics_Agentic_API {
 

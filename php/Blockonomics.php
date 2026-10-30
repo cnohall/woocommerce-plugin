@@ -655,8 +655,7 @@ class Blockonomics
         return (bool) get_option('blockonomics_agentic_checkout', false);
     }
 
-    // Machine-readable payment details for agentic checkout. An unpaid quote is
-    // reused until it expires so repeated reads don't re-price an amount the payer may already be sending
+    // Payment details as JSON for agents. Unpaid quotes are reused until expiry so the amount doesn't change mid-payment
     public function get_agentic_payment_details($order_id, $crypto){
         $active_cryptos = $this->getCachedActiveCurrencies();
         if (!isset($active_cryptos[$crypto])) {
@@ -699,11 +698,15 @@ class Blockonomics
             $details['payment_uri'] = $this->get_crypto_payment_uri($crypto_obj, $order['address'], $amount);
         }
         if ($crypto === 'usdt') {
-            // USDT is an ERC-20 transfer; the payer must submit the txhash afterwards
-            $details['network'] = (strpos($order['address'], '0xTestUSDTAddress') === 0) ? 'ethereum-testmode' : 'ethereum';
+            // ERC-20 transfers are only detected once the payer submits the txhash
+            $details['network'] = $this->is_usdt_test_address($order['address']) ? 'ethereum-testmode' : 'ethereum';
             $details['txhash_url'] = rest_url('blockonomics/v1/orders/' . $details['order_hash'] . '/txhash');
         }
         return $details;
+    }
+
+    private function is_usdt_test_address($address){
+        return strpos($address, '0xTestUSDTAddress') === 0;
     }
 
     private function get_agentic_payment_status($order){
@@ -719,7 +722,7 @@ class Blockonomics
         return 'failed';
     }
 
-    // Agent-submitted USDT txhash. Unlike the admin attach_txhash, never replaces a different bound hash
+    // Like attach_txhash, but never replaces a hash already bound to the order
     public function agentic_submit_txhash($order_id, $txhash){
         $txhash = trim($txhash);
         $row = $this->get_order_by_id_and_crypto($order_id, 'usdt');
@@ -948,7 +951,7 @@ class Blockonomics
                 if ($context['crypto']['code'] === 'usdt') {
                     // Include the finish_order_url for USDT payment redirect
                     $context['finish_order_url'] = $this->get_parameterized_wc_url('api',array('finish_order'=>$order_hash, 'crypto'=>  $context['crypto']['code']));
-                    $context['testmode'] = (strpos($order['address'], '0xTestUSDTAddress') === 0) ? '1' : '0';
+                    $context['testmode'] = $this->is_usdt_test_address($order['address']) ? '1' : '0';
                 }else {
                     // Payment URI is sent as part of context to provide initial Payment URI, this can be calculated using javascript
                     // but we also need the URI for NoJS Templates and it makes sense to generate it from a single location to avoid redundancy!
@@ -1395,12 +1398,12 @@ class Blockonomics
         return is_string($hash) && $hash !== '' && strlen($hash) % 2 === 0 && ctype_xdigit($hash);
     }
 
-    // Non-exiting variant of decrypt_hash: returns the order id, or false when the hash matches no order
+    // Returns the order id, or false if no order matches. Unlike decrypt_hash, doesn't exit
     public function decrypt_order_id($hash)
     {
         $encryption_algorithm = 'AES-128-CBC';
         $hashing_algorith = 'sha256';
-        $secret = get_option('blockonomics_callback_secret');;
+        $secret = get_option('blockonomics_callback_secret');
 
         // we'll need the binary cipher
         $binaryInput = hex2bin($hash);
